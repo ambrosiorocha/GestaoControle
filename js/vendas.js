@@ -472,11 +472,14 @@ async function confirmarVenda() {
 // ================================
 // HISTÓRICO DE VENDAS — COM STATUS E AÇÕES ERP
 // ================================
-async function carregarHistoricoVendas() {
+async function carregarHistoricoVendas(filtros = null, msgCarregando = 'Carregando...') {
     const tbody = document.getElementById('listaHistorico');
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:1rem;color:#94a3b8;">Carregando...</td></tr>';
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:1rem;color:#94a3b8;">${msgCarregando}</td></tr>`;
     try {
-        const res = await fetch(window.SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'obterVendas' }) });
+        const payload = { action: 'obterVendas' };
+        if (filtros) payload.data = filtros;
+
+        const res = await fetch(window.SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
         const text = await res.text();
         const data = JSON.parse(text);
 
@@ -548,6 +551,29 @@ async function carregarHistoricoVendas() {
         console.error('Erro histórico:', e);
         tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:#ef4444;padding:1rem;">Erro ao carregar histórico: ${e.message}</td></tr>`;
     }
+}
+
+async function filtrarHistoricoVendas() {
+    const btn = document.getElementById('btnFiltrarHistorico');
+    if (!btn) return;
+
+    await execWithSpinner(btn, async () => {
+        const dataInicio = document.getElementById('filtroInicio').value;
+        const dataFim = document.getElementById('filtroFim').value;
+
+        let hint = 'Carregando...';
+        if (dataInicio) {
+            const dInicio = new Date(dataInicio + 'T00:00:00');
+            // Se buscar algo com mais de 60 dias, o script lerá a base de Historico
+            if ((Date.now() - dInicio) > 60 * 24 * 60 * 60 * 1000) {
+                hint = 'Consultando Arquivos (> 60 dias)...';
+            }
+        }
+
+        btn.textContent = hint;
+        await carregarHistoricoVendas({ dataInicio, dataFim }, hint);
+        btn.textContent = 'Buscar';
+    });
 }
 
 function toggleItens(btn) {

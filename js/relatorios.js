@@ -31,8 +31,8 @@ async function carregarRelatorios() {
         document.getElementById('loading').classList.add('hidden');
         document.getElementById('report-content').classList.remove('hidden');
 
-        if (data.status === 'sucesso' && data.dados.length > 0) {
-            const vendas = data.dados;
+        if (data.status === 'sucesso' && data.dados) {
+            const vendas = parseCompactData(data.dados);
             renderizarKPIs(vendas);
             renderizarGraficoVendasPorMes(vendas);
             renderizarGraficoVendasPorProduto(vendas);

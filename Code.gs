@@ -20,7 +20,7 @@ function doPost(e) {
     var data = requestData.data;
     var result;
 
-    var isWriteAction = action.startsWith('salvar') || action.startsWith('excluir') || action.startsWith('lancar') || action.startsWith('finalizar') || action.startsWith('estornar') || action.startsWith('baixar');
+    var isWriteAction = action.startsWith('salvar') || action.startsWith('excluir') || action.startsWith('lancar') || action.startsWith('finalizar') || action.startsWith('estornar') || action.startsWith('baixar') || action === 'arquivarVendasAntigas';
     var lock = null;
     
     if (isWriteAction) {
@@ -58,7 +58,10 @@ function doPost(e) {
           result = { status: 'sucesso', dados: obterProdutosUnicos() };
           break;
         case 'obterVendas':
-          result = { status: 'sucesso', dados: obterVendas() };
+          result = { status: 'sucesso', dados: obterVendas(data) };
+          break;
+        case 'arquivarVendasAntigas':
+          result = executarArquivamento();
           break;
         case 'obterClientes':
           result = { status: 'sucesso', dados: obterDadosGeral("Clientes") };
@@ -405,44 +408,70 @@ function obterProdutoPorId(id) {
   return null;
 }
 
-// obterVendas — mapeamento EXPLÍCITO por posição de coluna (resolve bug do Cliente)
-// Col: 0=ID 1=Data 2=Cliente 3=Itens 4=Qtd 5=Sub 6=Desc% 7=DescR$ 8=Total
-//      9=FormaPgto 10=Usuario 11=Status 12=Vencimento 13=ItensJSON
-function obterVendas() {
+function obterVendas(filtros) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName('Vendas');
-  if (!sheet || sheet.getLastRow() < 2) return { compact: true, headers: [], rows: [] };
-  var dados = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
-
-  function fmtDate(val) {
-    if (!val) return '';
-    if (val instanceof Date && !isNaN(val)) {
-      return val.getDate().toString().padStart(2,'0') + '/' +
-             (val.getMonth()+1).toString().padStart(2,'0') + '/' +
-             val.getFullYear();
-    }
-    return String(val);
+  var sheetVendas = ss.getSheetByName('Vendas');
+  var sheetHistorico = ss.getSheetByName('Historico_Vendas');
+  var todosDados = [];
+  
+  if (sheetVendas && sheetVendas.getLastRow() > 1) {
+    todosDados = sheetVendas.getRange(2, 1, sheetVendas.getLastRow() - 1, sheetVendas.getLastColumn()).getValues();
   }
 
-  // Filtrar últimos 60 dias
-  var limite = new Date();
-  limite.setDate(limite.getDate() - 60);
-
-  var dadosFiltrados = dados.filter(function(row) {
-    var val = row[1]; // Coluna Data
-    var rowDate;
-    if (val instanceof Date && !isNaN(val)) {
-        rowDate = val;
-    } else {
-        var parts = String(val).split('/');
-        if (parts.length === 3) {
-            rowDate = new Date(parts[2], parts[1] - 1, parts[0]);
-        } else {
-            return true;
-        }
+  var limiteAtual = new Date();
+  limiteAtual.setDate(limiteAtual.getDate() - 60);
+  
+  var buscarNoHistorico = false;
+  if (filtros && filtros.dataInicio) {
+    var dInicioBusca = new Date(filtros.dataInicio + 'T00:00:00');
+    if (!isNaN(dInicioBusca) && dInicioBusca < limiteAtual) {
+      buscarNoHistorico = true;
     }
-    return rowDate >= limite;
-  });
+  }
+
+  if (buscarNoHistorico && sheetHistorico && sheetHistorico.getLastRow() > 1) {
+    var dadosHistorico = sheetHistorico.getRange(2, 1, sheetHistorico.getLastRow() - 1, sheetHistorico.getLastColumn()).getValues();
+    todosDados = todosDados.concat(dadosHistorico);
+  }
+
+  function parseDateBr(val) {
+    if (val instanceof Date && !isNaN(val)) return val;
+    var parts = String(val).split('/');
+    if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]);
+    return null;
+  }
+
+  var dadosFiltrados = todosDados;
+
+  if (filtros && (filtros.dataInicio || filtros.dataFim)) {
+    var reqInicio = filtros.dataInicio ? new Date(filtros.dataInicio + 'T00:00:00') : null;
+    var reqFim    = filtros.dataFim    ? new Date(filtros.dataFim + 'T23:59:59') : null;
+    
+    dadosFiltrados = todosDados.filter(function(row) {
+      var dRow = parseDateBr(row[1]);
+      if (!dRow) return true;
+      if (reqInicio && dRow < reqInicio) return false;
+      if (reqFim && dRow > reqFim) return false;
+      return true;
+    });
+  } else {
+    // Default 60 dias
+    dadosFiltrados = todosDados.filter(function(row) {
+      var dRow = parseDateBr(row[1]);
+      if (!dRow) return true;
+      return dRow >= limiteAtual;
+    });
+  }
+
+  function fmtDate(val) {
+    var d = parseDateBr(val);
+    if (d) {
+      return d.getDate().toString().padStart(2,'0') + '/' +
+             (d.getMonth()+1).toString().padStart(2,'0') + '/' +
+             d.getFullYear();
+    }
+    return String(val || '');
+  }
 
   var rows = dadosFiltrados.map(function(row) {
     return [
@@ -459,6 +488,60 @@ function obterVendas() {
   ];
 
   return { compact: true, headers: headers, rows: rows };
+}
+
+// ==================================================
+// ARQUIVAMENTO HISTÓRICO DE VENDAS
+// ==================================================
+function executarArquivamento() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheetVendas = ss.getSheetByName('Vendas');
+  if (!sheetVendas || sheetVendas.getLastRow() < 2) {
+    return { status: 'sucesso', mensagem: 'Nenhuma venda para arquivar.' };
+  }
+  
+  var sheetHistorico = ss.getSheetByName('Historico_Vendas');
+  if (!sheetHistorico) {
+    sheetHistorico = ss.insertSheet('Historico_Vendas');
+    var headers = sheetVendas.getRange(1, 1, 1, sheetVendas.getLastColumn()).getValues();
+    sheetHistorico.getRange(1, 1, 1, headers[0].length).setValues(headers).setFontWeight('bold');
+  }
+  
+  var limiteArquivamento = new Date();
+  limiteArquivamento.setDate(limiteArquivamento.getDate() - 365);
+  
+  var dados = sheetVendas.getDataRange().getValues();
+  var linhasParaMover = [];
+  var indicesParaExcluir = [];
+  
+  for (var i = 1; i < dados.length; i++) {
+    var val = dados[i][1];
+    var rowDate;
+    if (val instanceof Date && !isNaN(val)) {
+        rowDate = val;
+    } else {
+        var parts = String(val).split('/');
+        if (parts.length === 3) rowDate = new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+    
+    if (rowDate && rowDate < limiteArquivamento) {
+      linhasParaMover.push(dados[i]);
+      indicesParaExcluir.push(i + 1); // linha no sheets (1-based, onde header = row 1)
+    }
+  }
+  
+  if (linhasParaMover.length > 0) {
+    var novaLinha = sheetHistorico.getLastRow() + 1;
+    sheetHistorico.getRange(novaLinha, 1, linhasParaMover.length, linhasParaMover[0].length).setValues(linhasParaMover);
+    
+    // Deleta de trás para frente para evitar problemas de offset
+    for (var j = indicesParaExcluir.length - 1; j >= 0; j--) {
+      sheetVendas.deleteRow(indicesParaExcluir[j]);
+    }
+    return { status: 'sucesso', mensagem: linhasParaMover.length + ' vendas antigas (>365 dias) arquivadas c/ sucesso.' };
+  }
+  
+  return { status: 'sucesso', mensagem: 'Nenhuma venda com mais de 365 dias para arquivar.' };
 }
 
 
