@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sisvendas-v1';
+const CACHE_NAME = 'sisvendas-v2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',

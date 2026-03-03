@@ -42,7 +42,11 @@ async function carregarDadosDashboard() {
                 return;
             }
 
-            const totalVendas = vendas.reduce((acc, venda) => acc + (parseFloat(venda['Total com Desconto']) || 0), 0);
+            const totalVendas = vendas.reduce((acc, venda) => {
+                let val = venda['Total com Desconto'];
+                if (typeof val === 'string') val = String(val).replace(/[R\$\s\.]/g, '').replace(',', '.');
+                return acc + (parseFloat(val) || 0);
+            }, 0);
             const totalTransacoes = vendas.length;
             const ticketMedio = totalTransacoes > 0 ? totalVendas / totalTransacoes : 0;
 
@@ -71,7 +75,9 @@ function renderizarGraficoMensal(vendas) {
         const mesAno = `${mes}/${ano}`;
         if (!dadosGrupados[mesAno]) dadosGrupados[mesAno] = 0;
 
-        dadosGrupados[mesAno] += (parseFloat(v['Total com Desconto']) || 0);
+        let val = v['Total com Desconto'];
+        if (typeof val === 'string') val = String(val).replace(/[R\$\s\.]/g, '').replace(',', '.');
+        dadosGrupados[mesAno] += (parseFloat(val) || 0);
     });
 
     const meses = Object.keys(dadosGrupados).sort((a, b) => {
