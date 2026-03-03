@@ -41,8 +41,11 @@ async function salvarProduto() {
         idProduto: document.getElementById('idProduto').value || null,
         nome: document.getElementById('nome').value,
         unidadeVenda: document.getElementById('unidadeVenda').value,
-        preco: parseFloat(document.getElementById('preco').value),
-        quantidade: parseFloat(document.getElementById('quantidade').value),
+        precoCusto: parseFloat(document.getElementById('precoCusto').value) || 0,
+        margemPct: parseFloat(document.getElementById('margemPct').value) || 0,
+        margemRS: parseFloat(document.getElementById('margemRS').value) || 0,
+        preco: parseFloat(document.getElementById('preco').value) || 0,
+        quantidade: parseFloat(document.getElementById('quantidade').value) || 0,
         descricao: document.getElementById('descricao').value
     };
 
@@ -107,48 +110,38 @@ async function carregarProdutos(forceSync = false) {
 
 function renderizarTabela(produtosParaRenderizar) {
     const listaProdutos = document.getElementById('listaProdutos');
-    listaProdutos.innerHTML = ''; // Limpa a tabela
+    listaProdutos.innerHTML = '';
 
     if (produtosParaRenderizar.length === 0) {
-        listaProdutos.innerHTML = '<tr><td colspan="7" class="table-cell p-4 text-center">Nenhum produto encontrado.</td></tr>';
+        listaProdutos.innerHTML = '<tr><td colspan="9" class="table-cell p-4 text-center">Nenhum produto encontrado.</td></tr>';
         return;
     }
 
-    // CORREÇÃO 1: Classes de layout do Tailwind para "PARCERIA"
-    const trClasses = "table-row"; // Define a linha como uma linha de tabela
-    const tdClasses = "table-cell align-middle"; // Define a célula como uma célula de tabela
-
-    produtosParaRenderizar.forEach(produto => {
-
-        // CORREÇÃO 2: O erro 'toFixed'
-        // Garante que 'produto.Preço' seja um número antes de formatar.
-        const precoString = String(produto.Preço || 0);
-        const precoLimpo = precoString.replace("R$", "").replace(/\./g, "").replace(",", ".").trim();
-        const precoNum = parseFloat(precoLimpo);
-
-        // Se 'precoNum' não for um número válido, define como 0
-        const precoFinal = isNaN(precoNum) ? 0 : precoNum;
-        // --- Fim da correção do toFixed ---
-
+    produtosParaRenderizar.forEach((produto, idx) => {
+        const precoVenda = parseFloat(String(produto['Preço_de_venda'] || produto['Preço'] || 0).replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 0;
+        const precoCusto = parseFloat(String(produto['Preço_de_custo'] || 0).replace('R$', '').replace(/\./g, '').replace(',', '.').trim()) || 0;
+        const margemPct = parseFloat(String(produto['Margem_de_lucro(%)'] || 0).replace('%', '').replace(',', '.').trim()) || 0;
+        const id = produto['ID do Produto'];
 
         const row = document.createElement('tr');
+        row.className = idx % 2 === 0 ? '' : 'bg-gray-50';
+        row.style.cssText = 'transition: background 0.15s;';
+        row.onmouseover = () => row.style.background = '#eff6ff';
+        row.onmouseout = () => row.style.background = idx % 2 === 0 ? '' : '#f9fafb';
 
-        // Adiciona a classe de linha do Tailwind
-        row.className = trClasses;
-
-        // O seu CSS (style.css) vai cuidar das bordas e padding
-        // Este JS cuida do layout (table-cell)
         row.innerHTML = `
-            <td class="${tdClasses}">${produto['ID do Produto']}</td>
-            <td class="${tdClasses}">${produto.Nome}</td>
-            <td class="${tdClasses}">${produto['Unidade de Venda']}</td>
-            <td class="${tdClasses}">R$ ${precoFinal.toFixed(2).replace('.', ',')}</td>
-            <td class="${tdClasses}">${produto.Quantidade}</td>
-            <td class="${tdClasses}">${produto.Descrição || ''}</td>
-            <td class="${tdClasses}">
+            <td class="table-cell px-3 py-2 text-xs text-gray-500">${id}</td>
+            <td class="table-cell px-3 py-2 font-medium">${produto.Nome || ''}</td>
+            <td class="table-cell px-3 py-2 text-center">${produto['Unidade de Venda'] || ''}</td>
+            <td class="table-cell px-3 py-2 text-right text-gray-600">${precoCusto > 0 ? 'R$ ' + precoCusto.toFixed(2).replace('.', ',') : '-'}</td>
+            <td class="table-cell px-3 py-2 text-center ${margemPct > 0 ? 'text-green-700 font-semibold' : 'text-gray-400'}">${margemPct > 0 ? margemPct.toFixed(1) + '%' : '-'}</td>
+            <td class="table-cell px-3 py-2 text-right font-semibold text-blue-700">R$ ${precoVenda.toFixed(2).replace('.', ',')}</td>
+            <td class="table-cell px-3 py-2 text-center">${produto.Quantidade ?? ''}</td>
+            <td class="table-cell px-3 py-2 text-gray-500 text-xs">${produto.Descrição || ''}</td>
+            <td class="table-cell px-3 py-2">
                 <div class="action-buttons">
-                    <button class="edit-btn" onclick="editarProduto(${produto['ID do Produto']})">Editar</button>
-                    <button class="delete-btn" data-admin-btn onclick="excluirProduto(${produto['ID do Produto']})">Excluir</button>
+                    <button class="edit-btn" onclick="editarProduto(${id})">Editar</button>
+                    <button class="delete-btn" data-admin-btn onclick="excluirProduto(${id})">Excluir</button>
                 </div>
             </td>
         `;
@@ -177,16 +170,21 @@ async function editarProduto(id) {
         if (data.status === 'sucesso' && data.dados) {
             const produto = data.dados;
             document.getElementById('idProduto').value = produto['ID do Produto'];
-            document.getElementById('nome').value = produto.Nome;
-            document.getElementById('unidadeVenda').value = produto['Unidade de Venda'];
+            document.getElementById('nome').value = produto.Nome || '';
+            document.getElementById('unidadeVenda').value = produto['Unidade de Venda'] || 'Un';
 
-            // CORREÇÃO 2 (toFixed) também aplicada aqui
-            const precoString = String(produto.Preço || 0);
-            const precoLimpo = precoString.replace("R$", "").replace(/\./g, "").replace(",", ".").trim();
-            const precoNum = parseFloat(precoLimpo);
+            const parseNum = (v) => { const s = String(v || 0).replace('R$', '').replace(/\./g, '').replace(',', '.').trim(); const n = parseFloat(s); return isNaN(n) ? 0 : n; };
 
-            document.getElementById('preco').value = isNaN(precoNum) ? 0 : precoNum;
-            document.getElementById('quantidade').value = produto.Quantidade;
+            const custo = parseNum(produto['Preço_de_custo']);
+            const margemPct = parseNum(produto['Margem_de_lucro(%)']);
+            const margemRS = parseNum(produto['Margem_de_lucro(R$)']);
+            const preco = parseNum(produto['Preço_de_venda'] || produto['Preço']);
+
+            document.getElementById('precoCusto').value = custo || '';
+            document.getElementById('margemPct').value = margemPct || '';
+            document.getElementById('margemRS').value = margemRS || '';
+            document.getElementById('preco').value = preco || '';
+            document.getElementById('quantidade').value = parseNum(produto.Quantidade);
             document.getElementById('descricao').value = produto.Descrição || '';
             exibirStatus({ status: 'success', mensagem: 'Campos preenchidos. Agora você pode editar.' });
         } else {

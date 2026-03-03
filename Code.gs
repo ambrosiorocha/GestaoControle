@@ -553,13 +553,20 @@ function salvarProduto(dados) {
     return { status: 'erro', mensagem: 'A planilha "Produtos" não foi encontrada.' };
   }
   var idProduto = dados.idProduto;
+
+  // Colunas: B=Nome, C=Unidade, D=Preço_de_custo, E=Margem_de_lucro(%),
+  //          F=Margem_de_lucro(R$), G=Preço_de_venda, H=Quantidade, I=Descrição
   var valoresProduto = [
     dados.nome,
     dados.unidadeVenda,
-    parseFloat(dados.preco),
-    parseFloat(dados.quantidade),
-    dados.descricao
+    parseFloat(dados.precoCusto) || 0,
+    parseFloat(dados.margemPct)  || 0,
+    parseFloat(dados.margemRS)   || 0,
+    parseFloat(dados.preco)      || 0,
+    parseFloat(dados.quantidade) || 0,
+    dados.descricao || ''
   ];
+
   if (idProduto) {
     var dadosSheet = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
     var linha = dadosSheet.findIndex(function(row) { return row[0] == idProduto; });
@@ -573,13 +580,11 @@ function salvarProduto(dados) {
   } else {
     var ultimaLinha = sheet.getLastRow();
     var novoId = (ultimaLinha > 1) ? sheet.getRange(ultimaLinha, 1).getValue() + 1 : 1;
-    sheet.appendRow([
-      novoId,
-      ...valoresProduto
-    ]);
+    sheet.appendRow([novoId, ...valoresProduto]);
     return { status: 'sucesso', mensagem: `Produto "${dados.nome}" cadastrado com sucesso!` };
   }
 }
+
 
 function excluirProduto(id) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
