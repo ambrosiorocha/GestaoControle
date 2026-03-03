@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sisvendas-v103';
+const CACHE_NAME = 'sisvendas-v104';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -19,10 +19,10 @@ const ASSETS_TO_CACHE = [
     './Fornecedores.html',
     './Financeiro.html',
     './Relatorios.html',
-    './manifest_v103.json',
+    './manifest_v104.json',
     './assets/logo.png',
-    './icons/icon-192-v4.png',
-    './icons/icon-512-v4.png'
+    './icons/icon-192-v3.png',
+    './icons/icon-512-v3.png'
 ];
 
 // Instalação do Service Worker e cache dos recursos
