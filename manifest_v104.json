@@ -1,6 +1,6 @@
 {
   "name": " ",
-  "short_name": "G&C",
+  "short_name": "Gestão&Controle",
   "description": "Sistema de Vendas PWA para Gestão Financeira e Estoque",
   "start_url": "./index.html",
   "display": "standalone",
