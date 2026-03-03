@@ -22,9 +22,13 @@ function exibirStatus(resposta) {
 
 async function carregarDadosDashboard() {
     try {
+        const hoje = new Date();
+        const umAnoAtras = new Date(hoje.setFullYear(hoje.getFullYear() - 1));
+        const dataInicioStr = umAnoAtras.toISOString().split('T')[0];
+
         const response = await fetch(window.SCRIPT_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'obterVendas' })
+            body: JSON.stringify({ action: 'obterVendas', data: { dataInicio: dataInicioStr } })
         });
         const data = await response.json();
 
