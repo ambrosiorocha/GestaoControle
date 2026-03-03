@@ -1,24 +1,28 @@
-const CACHE_NAME = 'sisvendas-v100';
+const CACHE_NAME = 'sisvendas-v101';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './Vendas.html',
-    './Clientes.html',
-    './Fornecedores.html',
-    './Produtos.html',
-    './Relatorios.html',
-    './Financeiro.html',
     './css/style.css',
+    './js/config.js',
+    './js/auth.js',
     './js/main.js',
+    './js/dashboard.js',
     './js/vendas.js',
+    './js/produtos.js',
     './js/clientes.js',
     './js/fornecedores.js',
-    './js/produtos.js',
-    './js/relatorios.js',
     './js/financeiro.js',
-    './js/dashboard.js',
-    './js/auth.js',
-    './js/config.js'
+    './js/relatorios.js',
+    './Vendas.html',
+    './Produtos.html',
+    './Clientes.html',
+    './Fornecedores.html',
+    './Financeiro.html',
+    './Relatorios.html',
+    './manifest_v101.json',
+    './assets/logo.png',
+    './icons/icon-192-v2.png',
+    './icons/icon-512-v2.png'
 ];
 
 // Instalação do Service Worker e cache dos recursos
