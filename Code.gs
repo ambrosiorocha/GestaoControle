@@ -102,6 +102,12 @@ function doPost(e) {
         case 'autenticarOperador':
           result = autenticarOperador(data);
           break;
+        case 'verificarPrimeiroAcesso':
+          result = verificarPrimeiroAcesso();
+          break;
+        case 'primeiroAcesso':
+          result = realizarPrimeiroAcesso(data);
+          break;
         case 'baixarLancamento':
           result = baixarLancamento(data.id);
           break;
@@ -766,6 +772,52 @@ function salvarOperador(dados) {
   }
   sheet.appendRow([nome, nivel, senha, plano]);
   return { status: 'sucesso', mensagem: 'Operador "' + nome + '" adicionado!' };
+}
+
+// ==================================================
+// PRIMEIRO ACESSO — Configura admin inicial
+// ==================================================
+
+// Retorna true se a aba Configurações estiver vazia ou sem nenhum admin
+function verificarPrimeiroAcesso() {
+  var sheet = obterConfiguracoes();
+  if (sheet.getLastRow() < 2) return { primeiroAcesso: true };
+  var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getValues();
+  var temAdmin = rows.some(function(r) {
+    return String(r[0]).trim() !== '' &&
+           (String(r[1]).toLowerCase() === 'admin' || String(r[1]).toLowerCase() === 'administrador');
+  });
+  return { primeiroAcesso: !temAdmin };
+}
+
+// Cria o primeiro administrador (só funciona se não houver admins)
+function realizarPrimeiroAcesso(dados) {
+  if (!dados || !dados.login || !dados.senha) {
+    return { status: 'erro', mensagem: 'Login e senha são obrigatórios.' };
+  }
+  // Validação de segurança: só executa se não houver admins
+  var check = verificarPrimeiroAcesso();
+  if (!check.primeiroAcesso) {
+    return { status: 'erro', mensagem: 'O sistema já possui um administrador cadastrado.' };
+  }
+  var sheet = obterConfiguracoes();
+  var login  = String(dados.login).trim();
+  var senha  = String(dados.senha);
+  var nome   = String(dados.nomeCompleto || login).trim();
+  var empresa = String(dados.empresa || '').trim();
+  // Verificar login duplicado
+  if (sheet.getLastRow() > 1) {
+    var existentes = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues().map(function(r){ return String(r[0]).trim(); });
+    if (existentes.indexOf(login) > -1) return { status: 'erro', mensagem: 'Este login já está em uso.' };
+  }
+  // Grava o admin inicial com plano Básico
+  sheet.appendRow([login, 'Admin', senha, 'Básico']);
+  // Grava nome da empresa em uma aba de configurações gerais (opção: propriedade da planilha)
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    PropertiesService.getScriptProperties().setProperties({ empresaNome: empresa, adminNome: nome });
+  } catch(e) { /* ignora */ }
+  return { status: 'sucesso', mensagem: 'Conta criada com sucesso! Faça seu login.' };
 }
 
 function excluirOperador(nome) {

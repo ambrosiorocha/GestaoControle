@@ -97,7 +97,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v9H3z"></path><path d="M14 3h7v5h-7z"></path><path d="M14 12h7v9h-7z"></path><path d="M3 16h7v5h-7z"></path></svg>
                     <span>Relatórios <span id="navRelatPlanBadge" style="font-size:0.6rem;padding:1px 5px;border-radius:999px;background:rgba(255,255,255,0.15);margin-left:2px;"></span></span>
                 </a>
+                <a href="Equipe.html" class="nav-link-menu" data-admin-only>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>Gerenciar Equipe</span>
+                </a>
             </nav>
+
             <!-- Badge do usuário logado -->
             <div class="user-badge-block">
                 <div id="userBadge" style="line-height:1.4;">—</div>
