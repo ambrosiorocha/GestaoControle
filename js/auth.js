@@ -369,12 +369,15 @@ window.Auth = (function () {
             e.preventDefault();
             // Não remove o overlay ainda — mantém cobrindo o body durante o fetch
             _verificarPrimeiroAcesso(isPrimeiro => {
-                ov.remove(); // só remove APÓS a resposta chegar
                 if (isPrimeiro) {
+                    // 1º adiciona o novo overlay, 2º remove o antigo
+                    // → nunca há um frame sem cobertura
                     showFirstAccessModal();
+                    ov.remove();
                 } else {
                     // Já tem admins — mostra aviso
                     showModal(null);
+                    ov.remove();
                     setTimeout(() => {
                         const err = document.getElementById('loginError');
                         if (err) {
