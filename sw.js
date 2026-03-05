@@ -1,4 +1,4 @@
-const CACHE_NAME = 'Gestão&Controle-v107';
+const CACHE_NAME = 'Gestão&Controle-v108';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -37,39 +37,29 @@ self.addEventListener('install', event => {
     self.skipWaiting();
 });
 
-// Interceptar as requisições (Fetch)
+// Interceptar as requisições (Fetch) - ESTRATÉGIA: NETWORK FIRST
 self.addEventListener('fetch', event => {
-    // Ignorar requisições ao Google Apps Script (sempre devem ir para rede)
-    if (event.request.url.includes('script.google.com')) {
+    // Ignorar requisições ao Google Apps Script ou métodos diferentes de GET
+    if (event.request.url.includes('script.google.com') || event.request.method !== 'GET') {
         event.respondWith(fetch(event.request));
         return;
     }
 
     event.respondWith(
-        caches.match(event.request)
+        fetch(event.request)
             .then(response => {
-                // Retorna do cache se encontrar
-                if (response) {
-                    return response;
+                // Se der certo e for uma resposta válida, atualiza o cache (em background)
+                if (response && response.status === 200 && response.type === 'basic') {
+                    const responseToCache = response.clone();
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, responseToCache);
+                    });
                 }
-                // Faz a requisição na rede caso contrário
-                return fetch(event.request).then(
-                    function (response) {
-                        // Verifica se a resposta foi válida
-                        if (!response || response.status !== 200 || response.type !== 'basic') {
-                            return response;
-                        }
-
-                        // Clona a resposta e coloca em cache
-                        var responseToCache = response.clone();
-                        caches.open(CACHE_NAME)
-                            .then(function (cache) {
-                                cache.put(event.request, responseToCache);
-                            });
-
-                        return response;
-                    }
-                );
+                return response;
+            })
+            .catch(() => {
+                // Se falhar a rede (ex: offline), pega do cache
+                return caches.match(event.request);
             })
     );
 });
