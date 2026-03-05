@@ -342,6 +342,40 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+// ==========================================
+// FUNÇÕES GLOBAIS DE FORMATAÇÃO E MÁSCARA MONETÁRIA
+// ==========================================
+window.formatCurrencyBRL = function (value) {
+    const num = parseFloat(value);
+    if (isNaN(num)) return 'R$ 0,00';
+    return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
+
+window.parseCurrencyBRL = function (value) {
+    if (typeof value === 'number') return value;
+    if (!value) return 0;
+    // Remove "R$", espaços, e caracteres que não sejam dígitos, vírgula ou ponto (caso não venha da máscara)
+    const str = String(value).replace('R$', '').trim();
+    // Se tiver vírgula e ponto, ex: 1.500,00, removemos o ponto e trocamos a vírgula.
+    // O mais seguro para "1.234,56" ou "1234,56":
+    const cleanStr = str.replace(/\./g, '').replace(',', '.');
+    const num = parseFloat(cleanStr);
+    return isNaN(num) ? 0 : num;
+};
+
+// Aplica a máscara em inputs com a classe "moeda-input" dinamicamente
+document.addEventListener('input', function (e) {
+    if (e.target && e.target.classList.contains('moeda-input')) {
+        let val = e.target.value.replace(/\D/g, ''); // só números
+        if (val === '') val = '0';
+        const num = parseInt(val, 10) / 100;
+        // Evita formatar se for 0 e o user acabou de deletar tudo (deixa vazio ou "0,00")
+        if (val === '0' && e.target.value === '') return;
+
+        e.target.value = num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+});
+
 // ── Funções Globais da Central de Ajuda ───────────────────────
 window.openHelpModal = function () {
     const modal = document.getElementById('helpModal');

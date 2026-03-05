@@ -115,9 +115,9 @@ function renderizarKPIs(vendas) {
     const totalTransacoes = vendas.length;
     const ticketMedio = totalTransacoes > 0 ? totalVendas / totalTransacoes : 0;
 
-    document.getElementById('totalVendas').textContent = `R$ ${totalVendas.toFixed(2).replace('.', ',')}`;
+    document.getElementById('totalVendas').textContent = formatCurrencyBRL(totalVendas);
     document.getElementById('totalTransacoes').textContent = totalTransacoes;
-    document.getElementById('ticketMedio').textContent = `R$ ${ticketMedio.toFixed(2).replace('.', ',')}`;
+    document.getElementById('ticketMedio').textContent = formatCurrencyBRL(ticketMedio);
 
     // Lucro estimado (Premium apenas — usa campo Custo se disponível)
     const lucroEl = document.getElementById('lucroEstimado');
@@ -128,7 +128,7 @@ function renderizarKPIs(vendas) {
             return acc + (parseFloat(c) || 0);
         }, 0);
         const lucro = totalVendas - totalCusto;
-        lucroEl.textContent = `R$ ${lucro.toFixed(2).replace('.', ',')}`;
+        lucroEl.textContent = formatCurrencyBRL(lucro);
     }
 }
 

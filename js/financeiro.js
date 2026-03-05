@@ -44,7 +44,7 @@ async function salvarFinanceiro() {
     const registro = {
         id: document.getElementById('idFinanceiro').value || null,
         descricao: document.getElementById('descricao').value,
-        valor: parseFloat(document.getElementById('valor').value),
+        valor: parseCurrencyBRL(document.getElementById('valor').value),
         tipo: document.getElementById('tipo').value,
         vencimento: document.getElementById('vencimento').value,
         status: document.getElementById('status').value,
@@ -165,7 +165,7 @@ function renderizarTabela(dados) {
         row.innerHTML = `
             <td class="${tdClasses}">${registroId}</td>
             <td class="${tdClasses}">${r.descricao || ''}</td>
-            <td class="${tdClasses} font-semibold">R$ ${parseFloat(r.valor || 0).toFixed(2).replace('.', ',')}</td>
+            <td class="${tdClasses} font-semibold">${formatCurrencyBRL(r.valor)}</td>
             <td class="${tdClasses} ${tipoClass}">${r.tipo || ''}</td>
             <td class="${tdClasses}">${formatarData(r.vencimento)}</td>
             <td class="${tdClasses} ${statusClass}">${r.status || ''}</td>
@@ -187,9 +187,9 @@ function atualizarResumo(dados) {
     const totalPagar = dados.filter(r => r.tipo === 'Pagar' && r.status !== 'Pago').reduce((acc, r) => acc + parseFloat(r.valor || 0), 0);
     const totalReceber = dados.filter(r => r.tipo === 'Receber' && r.status !== 'Pago').reduce((acc, r) => acc + parseFloat(r.valor || 0), 0);
     const saldo = totalReceber - totalPagar;
-    document.getElementById('totalPagar').textContent = `R$ ${totalPagar.toFixed(2).replace('.', ',')}`;
-    document.getElementById('totalReceber').textContent = `R$ ${totalReceber.toFixed(2).replace('.', ',')}`;
-    document.getElementById('saldoPendencias').textContent = `R$ ${saldo.toFixed(2).replace('.', ',')}`;
+    document.getElementById('totalPagar').textContent = formatCurrencyBRL(totalPagar);
+    document.getElementById('totalReceber').textContent = formatCurrencyBRL(totalReceber);
+    document.getElementById('saldoPendencias').textContent = formatCurrencyBRL(saldo);
 }
 
 // ==================== BAIXAR LANÇAMENTO ====================
@@ -197,8 +197,8 @@ async function baixarLancamento(id, tipo) {
     const acao = tipo === 'Receber' ? 'receber' : 'pagar';
     const r = registrosFinanceiros.find(item => (item.id || item.ID) == id);
     const valor = r ? parseFloat(r.valor || 0) : 0;
-    const valorStr = valor.toFixed(2).replace('.', ',');
-    const msg = tipo === 'Receber' ? `Confirmar recebimento de R$ ${valorStr}?` : `Confirmar pagamento de R$ ${valorStr}?`;
+    const valorStr = formatCurrencyBRL(valor);
+    const msg = tipo === 'Receber' ? `Confirmar recebimento de ${valorStr}?` : `Confirmar pagamento de ${valorStr}?`;
 
     if (!(await CustomModal.confirm(msg, 'Confirmar', 'Cancelar'))) return;
     try {

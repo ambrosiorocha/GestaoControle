@@ -75,8 +75,8 @@
                             <div>
                                 <label for="precoCusto" class="block text-sm font-medium text-gray-700 mb-1">Preço de
                                     Custo (R$) *</label>
-                                <input type="number" id="precoCusto" step="0.01" min="0" required placeholder="0,00"
-                                    class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
+                                <input type="text" id="precoCusto" required placeholder="0,00"
+                                    class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 moeda-input"
                                     oninput="calcularMargem('custo')">
                             </div>
                             <div>
@@ -89,15 +89,15 @@
                             <div>
                                 <label for="margemRS" class="block text-sm font-medium text-green-700 mb-1">Margem de
                                     Lucro (R$)</label>
-                                <input type="number" id="margemRS" step="0.01" placeholder="Ex: 4,00"
-                                    class="w-full p-2 border border-green-200 rounded focus:ring-green-500 focus:border-green-500 bg-white"
+                                <input type="text" id="margemRS" placeholder="Ex: 4,00"
+                                    class="w-full p-2 border border-green-200 rounded focus:ring-green-500 focus:border-green-500 bg-white moeda-input"
                                     oninput="calcularMargem('rs')">
                             </div>
                             <div>
                                 <label for="preco" class="block text-sm font-medium text-blue-700 mb-1">Preço de Venda
                                     (R$) *</label>
-                                <input type="number" id="preco" step="0.01" min="0" required placeholder="Ex: 14,00"
-                                    class="w-full p-2 border border-blue-300 rounded focus:ring-blue-500 focus:border-blue-500 bg-white font-semibold"
+                                <input type="text" id="preco" required placeholder="Ex: 14,00"
+                                    class="w-full p-2 border border-blue-300 rounded focus:ring-blue-500 focus:border-blue-500 bg-white font-semibold moeda-input"
                                     oninput="calcularMargem('preco')">
                             </div>
                         </div>
@@ -118,8 +118,8 @@
                         <div class="mt-3">
                             <label for="precoBasico" class="block text-sm font-medium text-blue-700 mb-1">Preço de Venda
                                 (R$) *</label>
-                            <input type="number" id="precoBasico" step="0.01" min="0" placeholder="Ex: 14,00"
-                                class="w-full p-2 border border-blue-300 rounded focus:ring-blue-500 focus:border-blue-500 bg-white font-semibold">
+                            <input type="text" id="precoBasico" placeholder="Ex: 14,00"
+                                class="w-full p-2 border border-blue-300 rounded focus:ring-blue-500 focus:border-blue-500 bg-white font-semibold moeda-input">
                         </div>
                     </div>
 

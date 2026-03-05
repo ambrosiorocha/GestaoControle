@@ -202,9 +202,9 @@ function sincronizarDesconto(origem) {
     const bruto = preco * qtd;
     if (origem === 'pct') {
         const pct = parseFloat(document.getElementById('descontoItemPct').value) || 0;
-        document.getElementById('descontoItemReais').value = bruto > 0 ? (bruto * pct / 100).toFixed(2) : '0';
+        document.getElementById('descontoItemReais').value = bruto > 0 ? (bruto * pct / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0,00';
     } else {
-        const reais = parseFloat(document.getElementById('descontoItemReais').value) || 0;
+        const reais = parseCurrencyBRL(document.getElementById('descontoItemReais').value) || 0;
         document.getElementById('descontoItemPct').value = bruto > 0 ? (reais / bruto * 100).toFixed(2) : '0';
     }
     atualizarSubtotalItem();
@@ -217,7 +217,7 @@ function atualizarSubtotalItem() {
     const subtotal = Math.max(0, qtd * preco * (1 - descPct / 100));
     const el = document.getElementById('subtotalItem');
     if (qtd > 0 && preco > 0) {
-        el.textContent = `R$ ${subtotal.toFixed(2).replace('.', ',')}`;
+        el.textContent = formatCurrencyBRL(subtotal);
         el.style.color = '#16a34a';
     } else {
         el.textContent = '—';
@@ -413,9 +413,9 @@ function atualizarModalTotais() {
     const descontoTotal = descontoItens + descontoGeral;
     const total = Math.max(0, subtotalBruto - descontoTotal);
 
-    document.getElementById('modalSubtotal').textContent = `R$ ${subtotalBruto.toFixed(2).replace('.', ',')}`;
-    document.getElementById('modalDesconto').textContent = `- R$ ${descontoTotal.toFixed(2).replace('.', ',')}`;
-    document.getElementById('modalTotal').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+    document.getElementById('modalSubtotal').textContent = formatCurrencyBRL(subtotalBruto);
+    document.getElementById('modalDesconto').textContent = `- ${formatCurrencyBRL(descontoTotal).replace('R$ ', 'R$ ')}`;
+    document.getElementById('modalTotal').textContent = formatCurrencyBRL(total);
 }
 
 
@@ -574,7 +574,7 @@ async function carregarHistoricoVendas(filtros = null, msgCarregando = 'Carregan
                     <td><span>${itensDisplay}</span>${expandBtn}</td>
                     <td>${pgto}</td>
                     <td>${statusBadge}</td>
-                    <td><strong>R$ ${total.toFixed(2).replace('.', ',')}</strong></td>
+                    <td><strong>${formatCurrencyBRL(total)}</strong></td>
                     <td><div class="action-buttons">${acoes}</div></td>
                 `;
                 tbody.appendChild(tr);
@@ -778,10 +778,10 @@ function abrirCupom(cupom) {
         </div>
         ${itensHtml}
         <div style="margin:6px 0;color:#000;">${linha}</div>
-        <div style="display:flex;justify-content:space-between;color:#000;font-weight:500;"><span>Subtotal:</span><span>R$ ${subtotalBruto.toFixed(2).replace('.', ',')}</span></div>
-        ${descontoTotal > 0.005 ? `<div style="display:flex;justify-content:space-between;color:#000;font-weight:bold;"><span>Desconto Total:</span><span>- R$ ${descontoTotal.toFixed(2).replace('.', ',')}</span></div>` : ''}
+        <div style="display:flex;justify-content:space-between;color:#000;font-weight:500;"><span>Subtotal:</span><span>${formatCurrencyBRL(subtotalBruto)}</span></div>
+        ${descontoTotal > 0.005 ? `<div style="display:flex;justify-content:space-between;color:#000;font-weight:bold;"><span>Desconto Total:</span><span>- ${formatCurrencyBRL(descontoTotal)}</span></div>` : ''}
         <div style="margin:6px 0;color:#000;">${linhaDupla}</div>
-        <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:bold;color:#000;"><span>TOTAL:</span><span>R$ ${cupom.total.toFixed(2).replace('.', ',')}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:bold;color:#000;"><span>TOTAL:</span><span>${formatCurrencyBRL(cupom.total)}</span></div>
         <div style="margin:6px 0;color:#000;">${linha}</div>
         <div style="color:#000;font-weight:500;"><b>Pagamento:</b> ${cupom.formaPagamento}</div>
         <div style="color:#000;font-weight:500;"><b>Vencimento:</b> ${cupom.vencimento} (${cupom.statusPgto})</div>

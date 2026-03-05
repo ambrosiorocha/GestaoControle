@@ -70,10 +70,10 @@ async function salvarProduto() {
         idProduto: document.getElementById('idProduto').value || null,
         nome: document.getElementById('nome').value,
         unidadeVenda: document.getElementById('unidadeVenda').value,
-        precoCusto: parseFloat(document.getElementById('precoCusto').value) || 0,
+        precoCusto: parseCurrencyBRL(document.getElementById('precoCusto').value),
         margemPct: parseFloat(document.getElementById('margemPct').value) || 0,
-        margemRS: parseFloat(document.getElementById('margemRS').value) || 0,
-        preco: parseFloat(document.getElementById('preco').value) || 0,
+        margemRS: parseCurrencyBRL(document.getElementById('margemRS').value),
+        preco: parseCurrencyBRL(document.getElementById('preco').value),
         quantidade: parseFloat(document.getElementById('quantidade').value) || 0,
         descricao: document.getElementById('descricao').value
     };
@@ -154,7 +154,7 @@ function renderizarTabela(produtosParaRenderizar) {
         const margemPct = parseFloat(String(produto['Margem_de_lucro(%)'] || 0).replace('%', '').replace(',', '.').trim()) || 0;
         const id = produto['ID do Produto'];
 
-        const custoCel = isBasico ? '' : `<td style="text-align:right; color:#64748b;">${precoCusto > 0 ? 'R$ ' + precoCusto.toFixed(2).replace('.', ',') : '-'}</td>`;
+        const custoCel = isBasico ? '' : `<td style="text-align:right; color:#64748b;">${precoCusto > 0 ? formatCurrencyBRL(precoCusto) : '-'}</td>`;
         const margemCel = isBasico ? '' : `<td style="text-align:center; ${margemPct > 0 ? 'color:#15803d; font-weight:600;' : 'color:#94a3b8;'}">${margemPct > 0 ? margemPct.toFixed(1) + '%' : '-'}</td>`;
 
         const row = document.createElement('tr');
@@ -164,7 +164,7 @@ function renderizarTabela(produtosParaRenderizar) {
             <td style="text-align:center;">${produto['Unidade de Venda'] || ''}</td>
             ${custoCel}
             ${margemCel}
-            <td style="text-align:right; font-weight:600; color:#1d4ed8;">R$ ${precoVenda.toFixed(2).replace('.', ',')}</td>
+            <td style="text-align:right; font-weight:600; color:#1d4ed8;">${formatCurrencyBRL(precoVenda)}</td>
             <td style="text-align:center;">${produto.Quantidade ?? ''}</td>
             <td style="color:#94a3b8; font-size:0.78rem;">${produto.Descrição || ''}</td>
             <td>
@@ -209,13 +209,15 @@ async function editarProduto(id) {
             const margemRS = parseNum(produto['Margem_de_lucro(R$)']);
             const preco = parseNum(produto['Preço_de_venda'] || produto['Preço']);
 
-            document.getElementById('precoCusto').value = custo || '';
+            const formatMoneyInput = (val) => val > 0 ? val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+
+            document.getElementById('precoCusto').value = formatMoneyInput(custo);
             document.getElementById('margemPct').value = margemPct || '';
-            document.getElementById('margemRS').value = margemRS || '';
-            document.getElementById('preco').value = preco || '';
+            document.getElementById('margemRS').value = formatMoneyInput(margemRS);
+            document.getElementById('preco').value = formatMoneyInput(preco);
             // Bug fix: sincroniza campo visível no plano Básico
             const precoBasicoEl = document.getElementById('precoBasico');
-            if (precoBasicoEl) precoBasicoEl.value = preco || '';
+            if (precoBasicoEl) precoBasicoEl.value = formatMoneyInput(preco);
             document.getElementById('quantidade').value = parseNum(produto.Quantidade);
             document.getElementById('descricao').value = produto.Descrição || '';
             exibirStatus({ status: 'success', mensagem: 'Campos preenchidos. Agora você pode editar.' });
