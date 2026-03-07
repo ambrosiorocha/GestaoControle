@@ -13,6 +13,27 @@ document.addEventListener('DOMContentLoaded', function () {
     if (Auth.isPlanBasico()) {
         const kpiGrid = document.getElementById('kpiGridFinanceiro');
         if (kpiGrid) kpiGrid.style.display = 'none';
+
+        // Ocultar opções de Criação Restritas ao Plano PRO
+        const selectTipo = document.getElementById('tipo');
+        if (selectTipo) {
+            for (let i = 0; i < selectTipo.options.length; i++) {
+                if (selectTipo.options[i].value === 'Receber') selectTipo.options[i].style.display = 'none';
+            }
+            selectTipo.value = 'Pagar';
+        }
+
+        const selectStatus = document.getElementById('status');
+        if (selectStatus) {
+            for (let i = 0; i < selectStatus.options.length; i++) {
+                if (selectStatus.options[i].value === 'Pendente') selectStatus.options[i].style.display = 'none';
+            }
+            selectStatus.value = 'Pago';
+        }
+
+        // Esconder os Filtros de "Todos os Tipos" etc para forçar visualização limpa
+        const filtroArea = document.getElementById('filtroTipo');
+        if (filtroArea) filtroArea.style.display = 'none';
     }
     carregarFinanceiro();
 });
@@ -98,7 +119,15 @@ function aplicarFiltros() {
 
     let filtrados = [...registrosFinanceiros];
 
-    if (filtroTipo) {
+    // Ocultar sempre registros financeiros de vendas Estornadas da UI limpa
+    filtrados = filtrados.filter(r => r.status && r.status !== 'Estornado' && r.status !== 'Estornada');
+
+    // Regra de Gating de Plano: Básico não enxerga "A Receber" no Financeiro (não tem Fiado)
+    if (typeof Auth !== 'undefined' && Auth.isPlanBasico()) {
+        filtrados = filtrados.filter(r => r.tipo === 'Pagar');
+    }
+
+    if (filtroTipo && !(typeof Auth !== 'undefined' && Auth.isPlanBasico())) {
         filtrados = filtrados.filter(r => r.tipo === filtroTipo);
     }
     if (dataInicio) {
@@ -221,10 +250,13 @@ function editarFinanceiro(id) {
         document.getElementById('idFinanceiro').value = r.id || r.ID;
         document.getElementById('descricao').value = r.descricao || '';
         document.getElementById('valor').value = r.valor || '';
-        document.getElementById('tipo').value = r.tipo || '';
-        document.getElementById('vencimento').value = r.vencimento || '';
-        document.getElementById('status').value = r.status || '';
         document.getElementById('categoria').value = r.categoria || '';
+        document.getElementById('vencimento').value = r.vencimento || '';
+
+        const isBsc = typeof Auth !== 'undefined' && Auth.isPlanBasico();
+        document.getElementById('tipo').value = isBsc ? 'Pagar' : (r.tipo || '');
+        document.getElementById('status').value = isBsc ? 'Pago' : (r.status || '');
+
         exibirStatus({ status: 'success', mensagem: 'Registro carregado para edição.' });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
