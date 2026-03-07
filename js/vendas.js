@@ -556,12 +556,14 @@ async function carregarHistoricoVendas(filtros = null, msgCarregando = 'Carregan
                     statusBadge = `<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;">&#9989; Concluída</span>`;
                     const _bscCon = typeof Auth !== 'undefined' && Auth.isPlanBasico();
                     const _printCon = _bscCon ? '' : `<button title="Reimprimir cupom" data-print-btn style="background:none;border:1px solid #cbd5e1;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:13px;" onclick="reimprimirCupom(${id},'${encodeURIComponent(itensJSON)}','${encodeURIComponent(cliente)}','${encodeURIComponent(operador)}','${encodeURIComponent(pgto)}',${total},'${dataV}')">&#128424;&#65039;</button>`;
-                    acoes = `${_printCon}${whatsappBtn}<button class="delete-btn" style="background:#f59e0b;color:#fff;font-size:11px;" data-admin-btn onclick="confirmarEstorno(${id})">&#8617;&#65039; Estornar</button>`;
+                    const btnReaproveitar = `<button title="Copiar itens para nova venda (Reaproveitar)" style="background:none;border:1px solid #3b82f6;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:13px;" onclick="reaproveitarVenda('${encodeURIComponent(itensJSON)}')">&#128260;</button>`;
+                    acoes = `${btnReaproveitar}${_printCon}${whatsappBtn}<button class="delete-btn" style="background:#f59e0b;color:#fff;font-size:11px;" data-admin-btn onclick="confirmarEstorno(${id})">&#8617;&#65039; Estornar</button>`;
                 } else if (status === 'Estornada') {
                     statusBadge = `<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;">&#8617;&#65039; Estornada</span>`;
                     const _basico2 = typeof Auth !== 'undefined' && Auth.isPlanBasico();
                     const _printBtn2 = _basico2 ? '' : `<button title="Reimprimir cupom" data-print-btn style="background:none;border:1px solid #cbd5e1;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:13px;" onclick="reimprimirCupom(${id},'${encodeURIComponent(itensJSON)}','${encodeURIComponent(cliente)}','${encodeURIComponent(operador)}','${encodeURIComponent(pgto)}',${total},'${dataV}')">&#128424;&#65039;</button>`;
-                    acoes = `${_printBtn2}${whatsappBtn}`;
+                    const btnReaproveitarX = `<button class="edit-btn" style="background:#3b82f6;color:#fff;font-size:11px;margin-right:2px;" onclick="reaproveitarVenda('${encodeURIComponent(itensJSON)}')">&#128260; Reaproveitar Itens</button>`;
+                    acoes = `${btnReaproveitarX}${_printBtn2}${whatsappBtn}`;
                 }
 
 
@@ -641,6 +643,33 @@ function editarRascunho(id, itensJSONEncoded) {
         exibirStatus({ status: 'success', mensagem: `✏️ Rascunho #${id} carregado. Edite e finalize.` });
     } catch (e) {
         exibirStatus({ status: 'error', mensagem: 'Erro ao carregar rascunho: ' + e.message });
+    }
+}
+
+// ================================
+// REAPROVEITAR VENDA (Cria NOVO Carrinho)
+// ================================
+function reaproveitarVenda(itensJSONEncoded) {
+    try {
+        const itensJSON = decodeURIComponent(itensJSONEncoded);
+        const itens = JSON.parse(itensJSON);
+        if (!itens || itens.length === 0) {
+            exibirStatus({ status: 'error', mensagem: 'Esta venda não possui itens para serem reaproveitados.' });
+            return;
+        }
+        carrinho = itens.map(i => ({
+            nome: i.nome, preco: parseFloat(i.preco) || 0,
+            quantidade: parseFloat(i.quantidade) || 0,
+            desconto: parseFloat(i.desconto) || 0,
+            subtotal: parseFloat(i.subtotal) || 0
+        }));
+
+        vendaEditandoId = null; // Zera o ID: É uma nova venda
+        renderizarCarrinho();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        exibirStatus({ status: 'success', mensagem: `🔄 Itens copiados! Edite as quantidades e crie o NOVO pedido.` });
+    } catch (e) {
+        exibirStatus({ status: 'error', mensagem: 'Erro ao reaproveitar venda: ' + e.message });
     }
 }
 
