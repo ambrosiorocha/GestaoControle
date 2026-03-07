@@ -196,12 +196,45 @@ function renderizarTabela(dados) {
         const registroId = r.id || r.ID;
         const row = document.createElement('tr');
         row.className = trClasses;
-        const isPago = r.status === 'Pago';
-        const statusClass = isPago ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
+        const isEstornado = r.status === 'Estornado' || r.status === 'Estornada';
+        const isVenda = String(r.descricao).toLowerCase().includes('venda #') || (r.categoria && String(r.categoria).toLowerCase() === 'venda');
+
+        let statusClass = 'font-bold ';
+        if (isEstornado) statusClass += 'text-gray-500 line-through';
+        else if (isPago) statusClass += 'text-green-600';
+        else statusClass += 'text-red-600';
+
         const tipoClass = r.tipo === 'Receber' ? 'text-blue-600' : 'text-orange-600';
-        const btnBaixar = isPago
-            ? `<span style="color:#16a34a; font-size:0.78rem;">✅ Quitado</span>`
-            : `<button class="edit-btn" style="background:#16a34a; color:white; font-size:0.75rem;" onclick="execWithSpinner(this, () => baixarLancamento(${registroId}, '${r.tipo}'))">${r.tipo === 'Receber' ? '✅ Receber' : '✅ Pagar'}</button>`;
+
+        let btnBaixar = '';
+        if (!isEstornado) {
+            btnBaixar = isPago
+                ? `<span style="color:#16a34a; font-size:0.78rem;">✅ Quitado</span>`
+                : `<button class="edit-btn" style="background:#16a34a; color:white; font-size:0.75rem;" onclick="execWithSpinner(this, () => baixarLancamento(${registroId}, '${r.tipo}'))">${r.tipo === 'Receber' ? '✅ Receber' : '✅ Pagar'}</button>`;
+        } else {
+            btnBaixar = `<span style="color:#64748b; font-size:0.78rem;">❌ Cancelado</span>`;
+        }
+
+        let acoesHtml = '';
+        if (isVenda) {
+            acoesHtml = `<span style="font-size:0.75rem; color:#64748b; font-style:italic;">Gerencie em Vendas</span>`;
+            if (!isPago && !isEstornado) acoesHtml = btnBaixar + " " + acoesHtml;
+        } else {
+            if (!isEstornado) {
+                // Se está ativo, o usuário só pode Estornar (Cancelar) para então Editar ou Excluir.
+                acoesHtml = `
+                    ${btnBaixar}
+                    <button class="delete-btn" style="background:#f59e0b; color:white;" onclick="estornarLancamentoManual(${registroId})">Estornar</button>
+                `;
+            } else {
+                // Se já está estornado, pode re-editar (voltando a ficar ativo e salvo) ou Excluir de vez da base
+                acoesHtml = `
+                    ${btnBaixar}
+                    <button class="edit-btn" style="background:#3b82f6; color:white;" onclick="editarFinanceiro(${registroId})">Editar</button>
+                    <button class="delete-btn" onclick="excluirFinanceiro(${registroId})">Excluir</button>
+                `;
+            }
+        }
 
         row.innerHTML = `
             <td class="${tdClasses}">${registroId}</td>
@@ -212,10 +245,8 @@ function renderizarTabela(dados) {
             <td class="${tdClasses} ${statusClass}">${r.status || ''}</td>
             <td class="${tdClasses}">${r.categoria || ''}</td>
             <td class="${tdClasses}">
-                <div class="action-buttons" style="display:flex; gap:0.35rem; flex-wrap:wrap;">
-                    ${btnBaixar}
-                    <button class="edit-btn" onclick="editarFinanceiro(${registroId})">Editar</button>
-                    <button class="delete-btn" onclick="excluirFinanceiro(${registroId})">Excluir</button>
+                <div class="action-buttons" style="display:flex; gap:0.35rem; flex-wrap:wrap; align-items:center;">
+                    ${acoesHtml}
                 </div>
             </td>
         `;
@@ -252,6 +283,36 @@ async function baixarLancamento(id, tipo) {
         if (data.status === 'sucesso') await carregarFinanceiro();
     } catch (error) {
         exibirStatus({ status: 'error', mensagem: 'Erro: ' + error.message });
+    }
+}
+
+// ==================== ESTORNAR LANÇAMENTO MANUAL ====================
+async function estornarLancamentoManual(id) {
+    if (!(await CustomModal.confirm(`Cancelar Lançamento #${id}?\n\nEste lançamento ficará "Estornado" (inativo) e poderá ser editado ou excluído definitivamente depois.`, 'Cancelar Lançamento', 'Voltar'))) return;
+
+    const r = registrosFinanceiros.find(item => (item.id || item.ID) == id);
+    if (!r) return;
+
+    const registroCancelado = {
+        id: r.id || r.ID,
+        descricao: r.descricao,
+        valor: parseFloat(r.valor),
+        tipo: r.tipo,
+        vencimento: r.vencimento,
+        status: 'Estornado',
+        categoria: r.categoria
+    };
+
+    try {
+        const response = await fetch(window.SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'salvarFinanceiro', data: registroCancelado })
+        });
+        const data = await response.json();
+        exibirStatus(data);
+        if (data.status === 'sucesso') await carregarFinanceiro();
+    } catch (error) {
+        exibirStatus({ status: 'error', mensagem: 'Erro ao cancelar lançamento: ' + error.message });
     }
 }
 
