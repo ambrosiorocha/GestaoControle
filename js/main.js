@@ -354,12 +354,17 @@ window.formatCurrencyBRL = function (value) {
 window.parseCurrencyBRL = function (value) {
     if (typeof value === 'number') return value;
     if (!value) return 0;
-    // Remove "R$", espaços, e caracteres que não sejam dígitos, vírgula ou ponto (caso não venha da máscara)
-    const str = String(value).replace('R$', '').trim();
-    // Se tiver vírgula e ponto, ex: 1.500,00, removemos o ponto e trocamos a vírgula.
-    // O mais seguro para "1.234,56" ou "1234,56":
-    const cleanStr = str.replace(/\./g, '').replace(',', '.');
-    const num = parseFloat(cleanStr);
+
+    // Remove "R$" spaces, non-digits (excluding dot and comma)
+    let str = String(value).replace(/[^\d,\.-]/g, '');
+
+    // If we have standard BR format "1.234,56" or "1234,56"
+    // Remove thousand separators (dots)
+    str = str.replace(/\./g, '');
+    // Replace decimal separator (comma) with dot
+    str = str.replace(',', '.');
+
+    const num = parseFloat(str);
     return isNaN(num) ? 0 : num;
 };
 
