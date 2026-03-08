@@ -5,10 +5,35 @@ document.addEventListener('DOMContentLoaded', function () {
         exibirStatus({ status: 'error', mensagem: 'Configure a window.SCRIPT_URL no config.js.' });
         return;
     }
-    document.getElementById('financeiroForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-        execWithSpinner(document.querySelector('#financeiroForm button[type="submit"]'), salvarFinanceiro);
+    const caixaSelect = document.getElementById('caixa');
+    // Injeção de dependência dos Caixas baseada no Plano
+    if (Auth.isPlanBasico()) {
+        caixaSelect.innerHTML = '<option value="Dinheiro">💵 Dinheiro Mão</option>';
+        caixaSelect.value = 'Dinheiro';
+        caixaSelect.disabled = true; // Trava para o plano Básico
+    } else {
+        caixaSelect.innerHTML = `
+            <option value="Dinheiro">💵 Dinheiro (Balcão)</option>
+            <option value="Conta Banco do Brasil">🏦 Conta Banco do Brasil</option>
+            <option value="Conta Itaú">🏦 Conta Itaú</option>
+            <option value="Conta Caixa">🏦 Conta Bradesco</option>
+            <option value="Conta Nubank">🟣 Nubank Empresa</option>
+        `;
+    }
+
+    // Interceptação do Formulário para o Modal de Resumo
+    document.getElementById('btnPréSalvar').addEventListener('click', function () {
+        if (!document.getElementById('financeiroForm').checkValidity()) {
+            document.getElementById('financeiroForm').reportValidity();
+            return;
+        }
+        prepararResumoModal();
     });
+
+    document.getElementById('btnConfirmarSalvar').addEventListener('click', function (e) {
+        execWithSpinner(this, salvarFinanceiro);
+    });
+
     document.getElementById('filtroTipo').addEventListener('change', aplicarFiltros);
     if (Auth.isPlanBasico()) {
         const kpiGrid = document.getElementById('kpiGridFinanceiro');
@@ -73,6 +98,38 @@ function formatarData(valor) {
     const d = new Date(str);
     if (!isNaN(d)) return d.toLocaleDateString('pt-BR');
     return str;
+    return str;
+}
+
+// ==================== ABRIR MODAL RESUMO ====================
+function prepararResumoModal() {
+    const desc = document.getElementById('descricao').value;
+    const valorRaw = parseCurrencyBRL(document.getElementById('valor').value);
+    const tipo = document.getElementById('tipo').value;
+    const dataVenc = document.getElementById('vencimento').value;
+    const categ = document.getElementById('categoria').options[document.getElementById('categoria').selectedIndex].text;
+    const caixa = document.getElementById('caixa').options[document.getElementById('caixa').selectedIndex].text;
+    const status = document.getElementById('status').value;
+
+    document.getElementById('resDescricao').textContent = desc;
+    document.getElementById('resVencimento').textContent = formatarData(dataVenc);
+    document.getElementById('resCategoria').textContent = categ;
+    document.getElementById('resCaixa').textContent = caixa;
+
+    const divValor = document.getElementById('resValor');
+    const divTipoStatus = document.getElementById('resTipoStatus');
+
+    divValor.textContent = formatCurrencyBRL(valorRaw);
+
+    if (tipo === 'Receber') {
+        divValor.style.color = '#16a34a'; // Verde
+        divTipoStatus.innerHTML = `<span style="color:#16a34a font-weight:bold;">Entrada</span> • ${status}`;
+    } else {
+        divValor.style.color = '#dc2626'; // Vermelho
+        divTipoStatus.innerHTML = `<span style="color:#dc2626; font-weight:bold;">Despesa</span> • ${status}`;
+    }
+
+    document.getElementById('modalResumoFinanceiro').style.display = 'flex';
 }
 
 // ==================== SALVAR ====================
@@ -84,7 +141,8 @@ async function salvarFinanceiro() {
         tipo: document.getElementById('tipo').value,
         vencimento: document.getElementById('vencimento').value,
         status: document.getElementById('status').value,
-        categoria: document.getElementById('categoria').value
+        categoria: document.getElementById('categoria').value,
+        caixa: document.getElementById('caixa').value
     };
     try {
         const response = await fetch(window.SCRIPT_URL, {
@@ -96,6 +154,13 @@ async function salvarFinanceiro() {
         if (data.status === 'sucesso') {
             document.getElementById('financeiroForm').reset();
             document.getElementById('idFinanceiro').value = '';
+
+            // Re-trava o Caixa se for Básico
+            if (Auth.isPlanBasico()) {
+                document.getElementById('caixa').value = 'Dinheiro';
+            }
+
+            document.getElementById('modalResumoFinanceiro').style.display = 'none';
             await carregarFinanceiro();
         }
     } catch (error) {

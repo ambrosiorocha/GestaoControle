@@ -95,8 +95,65 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn">Registrar no Financeiro</button>
+                <div class="form-grid-container" style="grid-template-columns: 1fr;">
+                    <div class="form-group">
+                        <label for="caixa">Caixa / Banco</label>
+                        <select id="caixa" required class="w-full p-2 border border-gray-300 rounded">
+                            <!-- Serão preenchidos pelo JS de acordo com o plano -->
+                        </select>
+                    </div>
+                </div>
+
+                <button type="button" id="btnPréSalvar" class="btn">Revisar e Registrar</button>
             </form>
+
+            <!-- Modal de Resumo do Financeiro -->
+            <div id="modalResumoFinanceiro"
+                style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; align-items:center; justify-content:center;">
+                <div
+                    style="background:white; border-radius:1rem; padding:2rem; width:min(400px,95vw); box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                    <h3 style="margin-bottom:1.5rem; font-size:1.2rem; text-align:center; color:#1e293b;">Resumo do
+                        Lançamento</h3>
+
+                    <div
+                        style="background:#f8fafc; border-radius:0.5rem; padding:1.2rem; margin-bottom:1.5rem; font-size:0.95rem;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                            <span style="color:#64748b;">Descrição:</span>
+                            <span id="resDescricao" style="font-weight:600; text-align:right;">-</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                            <span style="color:#64748b;">Data:</span>
+                            <span id="resVencimento" style="font-weight:600;">-</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                            <span style="color:#64748b;">Categoria:</span>
+                            <span id="resCategoria" style="font-weight:600;">-</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                            <span style="color:#64748b;">Caixa:</span>
+                            <span id="resCaixa" style="font-weight:600;">-</span>
+                        </div>
+                        <hr style="margin:1rem 0;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-weight:700;">Valor Total:</span>
+                            <div style="text-align:right;">
+                                <div id="resValor" style="font-weight:800; font-size:1.25rem;">R$ 0,00</div>
+                                <div id="resTipoStatus"
+                                    style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em;">-</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:0.5rem;">
+                        <button type="button"
+                            onclick="document.getElementById('modalResumoFinanceiro').style.display='none'"
+                            style="flex:1; padding:0.8rem; background:#f1f5f9; color:#475569; border:none; border-radius:0.5rem; font-weight:600; cursor:pointer;">Cancelar</button>
+                        <button type="button" id="btnConfirmarSalvar"
+                            style="flex:2; padding:0.8rem; background:#16a34a; color:white; border:none; border-radius:0.5rem; font-weight:600; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:0.5rem;">
+                            Confirmar e Salvar</button>
+                    </div>
+                </div>
+            </div>
 
             <div id="statusMessage"></div>
 
