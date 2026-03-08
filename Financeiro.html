@@ -253,49 +253,7 @@
                 </div>
             </div>
 
-            <div id="statusMessage"></div>
 
-            <div class="table-container">
-                <div class="flex justify-between items-center mb-4" style="flex-wrap:wrap; gap:0.5rem;">
-                    <h3>Registros Financeiros</h3>
-                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
-                        <input type="date" id="filtroDataInicio" class="p-2 border border-gray-300 rounded text-sm"
-                            title="Data início">
-                        <span style="font-size:0.8rem; color:#64748b;">até</span>
-                        <input type="date" id="filtroDataFim" class="p-2 border border-gray-300 rounded text-sm"
-                            title="Data fim">
-                        <button onclick="aplicarFiltros()"
-                            class="p-2 border border-gray-300 rounded text-sm bg-blue-50 hover:bg-blue-100">🔍
-                            Filtrar</button>
-                        <button onclick="limparFiltros()" class="p-2 border border-gray-300 rounded text-sm">✕
-                            Limpar</button>
-                        <select id="filtroTipo" class="p-2 border border-gray-300 rounded text-sm">
-                            <option value="">Todos os Tipos</option>
-                            <option value="Pagar">A Pagar</option>
-                            <option value="Receber">A Receber</option>
-                        </select>
-                    </div>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Descrição</th>
-                            <th style="text-align:right;">Valor</th>
-                            <th>Tipo</th>
-                            <th>Vencimento</th>
-                            <th>Status</th>
-                            <th>Categoria</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="listaFinanceiro">
-                        <tr>
-                            <td colspan="8" style="text-align:center;">Carregando dados...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
         </div>
     </main>
 

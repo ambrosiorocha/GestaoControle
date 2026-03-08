@@ -443,3 +443,168 @@ async function excluirFinanceiro(id) {
         }
     }
 }
+
+// ==================== ABAS DO FINANCEIRO ====================
+function alternarAbaFinanceiro(aba) {
+    const tabLancamentos = document.getElementById('tabLancamentos');
+    const tabExtratos = document.getElementById('tabExtratos');
+    const btnLanc = document.getElementById('btnTabLancamentos');
+    const btnExt = document.getElementById('btnTabExtratos');
+
+    if (aba === 'lancamentos') {
+        tabLancamentos.style.display = 'block';
+        tabExtratos.style.display = 'none';
+
+        btnLanc.style.background = 'white';
+        btnLanc.style.color = '#334155';
+        btnLanc.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+
+        btnExt.style.background = 'transparent';
+        btnExt.style.color = '#64748b';
+        btnExt.style.boxShadow = 'none';
+
+    } else {
+        tabLancamentos.style.display = 'none';
+        tabExtratos.style.display = 'block';
+
+        btnExt.style.background = 'white';
+        btnExt.style.color = '#334155';
+        btnExt.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+
+        btnLanc.style.background = 'transparent';
+        btnLanc.style.color = '#64748b';
+        btnLanc.style.boxShadow = 'none';
+
+        renderizarExtratosCaixa();
+    }
+}
+
+// ==================== EXTRATO DE CAIXAS ====================
+window.renderizarExtratosCaixa = function () {
+    const isBsc = typeof Auth !== 'undefined' && Auth.isPlanBasico();
+
+    // Identificar caixas existentes nos registros e definir listagem padrão
+    const todosCaixasRegistrados = [...new Set(registrosFinanceiros.map(r => r.caixa || 'Dinheiro'))];
+    let caixasAtivos = isBsc ? ['Dinheiro'] : ['Dinheiro', 'Conta Banco do Brasil', 'Conta Itaú', 'Conta Caixa', 'Conta Nubank'];
+
+    // Adiciona caixas históricos caso existam nos dados mas não na listagem padrão
+    todosCaixasRegistrados.forEach(c => {
+        if (!caixasAtivos.includes(c)) caixasAtivos.push(c);
+    });
+
+    const kpiGrid = document.getElementById('kpiGridCaixas');
+    const selectFiltro = document.getElementById('filtroExtratoCaixa');
+
+    kpiGrid.innerHTML = '';
+
+    // Se ainda não inicializamos as opções do select
+    if (selectFiltro.options.length === 0) {
+        selectFiltro.innerHTML = '<option value="TODOS">🧾 Mostrar Todos os Caixas</option>';
+        caixasAtivos.forEach(c => {
+            selectFiltro.innerHTML += `<option value="${c}">${c}</option>`;
+        });
+    }
+
+    // Calcula saldo para cada caixa e gera os cards
+    caixasAtivos.forEach(nomeCaixa => {
+        const registrosDesteCaixa = registrosFinanceiros.filter(r => (r.caixa || 'Dinheiro') === nomeCaixa);
+
+        let entradas = 0;
+        let saidas = 0;
+
+        registrosDesteCaixa.forEach(r => {
+            const val = parseFloat(r.valor) || 0;
+            const statusPago = (r.status === 'Pago' || r.status === 'Quitado');
+            const naoEstornado = !(r.status === 'Estornado' || r.status === 'Estornada');
+
+            // Só conta no Extrato do Caixa o dinheiro que DE FATO ENTROU/SAIU
+            // Desconsidera "Pendente" para o cálculo do saldo final no caixa
+            if (statusPago && naoEstornado) {
+                if (r.tipo === 'Receber') entradas += val;
+                else saidas += val;
+            }
+        });
+
+        const saldoFinal = entradas - saidas;
+
+        // No grid, não mostrar cards de bancos se for básico exceto "Dinheiro"
+        if (isBsc && nomeCaixa !== 'Dinheiro') return;
+
+        const cardHtml = `
+            <div class="kpi-card" style="background:#f8fafc; border-bottom: 4px solid ${saldoFinal >= 0 ? '#16a34a' : '#ef4444'}">
+                <h4 style="color:#475569; font-weight:600; font-size:0.95rem;">🪙 ${nomeCaixa}</h4>
+                <p style="color:${saldoFinal >= 0 ? '#16a34a' : '#ef4444'}; font-size:1.5rem; font-weight:700;">${formatCurrencyBRL(saldoFinal)}</p>
+                <div style="display:flex; justify-content:space-between; margin-top:0.5rem; font-size:0.8rem;">
+                    <span style="color:#16a34a">Entrou: ${formatCurrencyBRL(entradas)}</span>
+                    <span style="color:#ef4444">Saiu: ${formatCurrencyBRL(saidas)}</span>
+                </div>
+            </div>
+        `;
+        kpiGrid.innerHTML += cardHtml;
+    });
+
+    renderizarTabelaExtrato();
+}
+
+window.renderizarTabelaExtrato = function () {
+    const selectFiltro = document.getElementById('filtroExtratoCaixa');
+    const caixaFiltro = selectFiltro.value;
+    const tbody = document.getElementById('listaExtratoCaixa');
+    tbody.innerHTML = '';
+
+    let filtrados = registrosFinanceiros.filter(r => {
+        const isEstornado = r.status === 'Estornado' || r.status === 'Estornada';
+        const isVenda = String(r.descricao).toLowerCase().includes('venda #') || (r.categoria && String(r.categoria).toLowerCase() === 'venda');
+        return !(isEstornado && isVenda);
+    });
+
+    if (caixaFiltro !== 'TODOS') {
+        filtrados = filtrados.filter(r => (r.caixa || 'Dinheiro') === caixaFiltro);
+    }
+
+    // Ocultar transações que não sejam "Pagas/Recebidas" do Extrato?
+    // Exibiremos todos do caixa, mas evidenciando O Pendente para clareza
+
+    if (filtrados.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:1.5rem; color:#64748b;">Nenhuma movimentação neste caixa.</td></tr>';
+        return;
+    }
+
+    filtrados.forEach(r => {
+        const tr = document.createElement('tr');
+
+        const val = parseFloat(r.valor) || 0;
+        const isEntrada = r.tipo === 'Receber';
+        const isCancelado = r.status === 'Estornado' || r.status === 'Estornada';
+        const isPendente = r.status === 'Pendente';
+
+        let colorType = isEntrada ? '#16a34a' : '#ef4444';
+        let spanValue = formatCurrencyBRL(val);
+
+        if (isCancelado) {
+            colorType = '#94a3b8';
+            spanValue = `<span style="text-decoration:line-through;">${spanValue}</span>`;
+        } else if (isPendente) {
+            // O Pendente fica alaranjado na lista de extrato para avisar que ainda não mexeu no saldo
+            colorType = '#d97706';
+        }
+
+        const dataVencStr = formatarData(r.vencimento);
+        const categStr = r.categoria || '-';
+        const descStr = r.descricao || 'Sem descrição';
+
+        tr.innerHTML = `
+            <td>${dataVencStr}</td>
+            <td>
+                <strong>${descStr}</strong>
+                ${isPendente ? '<br><span style="font-size:0.75rem; background:#fffbeb; color:#d97706; padding:1px 4px; border-radius:4px; font-weight:600;">&#128336; Futuro/Pendente</span>' : ''}
+                ${isCancelado ? '<br><span style="font-size:0.75rem; background:#f1f5f9; color:#64748b; padding:1px 4px; border-radius:4px; font-weight:600;">❌ Cancelado</span>' : ''}
+                ${caixaFiltro === 'TODOS' ? `<br><span style="font-size:0.75rem; color:#64748b;">🏦 ${r.caixa || 'Dinheiro'}</span>` : ''}
+            </td>
+            <td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:0.8rem;">${categStr}</span></td>
+            <td><span style="color:${colorType}; font-weight:600;">${isEntrada ? 'Entrada' : 'Saída'}</span></td>
+            <td style="text-align:right; font-weight:700; color:${colorType};">${isEntrada ? '+' : '-'} ${spanValue}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
