@@ -18,13 +18,16 @@ window.Auth = (function () {
         const ts = parseInt(localStorage.getItem(K.ts) || '0');
         return (Date.now() - ts) < SESSION_MS;
     }
-    function saveSession(nome, nivel, plano, permissoes) {
+    function saveSession(nome, nivel, plano, permissoes, empresa) {
         localStorage.setItem(K.user, nome);
         localStorage.setItem(K.nivel, nivel);
         localStorage.setItem(K.plano, plano || 'Básico');
         localStorage.setItem(K.perm, JSON.stringify(permissoes || {}));
+        if (empresa) localStorage.setItem('sv_empresa', empresa);
         localStorage.setItem(K.ts, Date.now().toString());
     }
+
+    function getEmpresa() { return localStorage.getItem('sv_empresa') || 'Gestão&Controle'; }
 
     function getPlan() { return localStorage.getItem(K.plano) || 'Pro'; }
     function isPlanBasico() {
@@ -125,11 +128,18 @@ window.Auth = (function () {
             })
             .then(data => {
                 if (data.status === 'sucesso') {
-                    saveSession(data.nome, data.nivel, data.plano, data.permissoes);
+                    saveSession(data.nome, data.nivel, data.plano, data.permissoes, data.empresa);
                     const ov = document.getElementById('loginOverlay');
                     if (ov) ov.remove();
                     if (_cb) _cb();
                     updateBadge();
+
+                    // Dispara o auto-registro na mestra em background
+                    fetch(window.SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'registrarMestra', data: { nome: data.nome, empresa: data.empresa } })
+                    }).catch(() => console.log('Registro background pendente.'));
+
                 } else {
                     errEl.textContent = data.mensagem || 'Usuário ou senha incorretos.';
                     errEl.style.display = 'block';
@@ -416,7 +426,7 @@ window.Auth = (function () {
     }
 
     return {
-        getUser, getNivel, getPlan, isPlanBasico, isAdmin, isLoggedIn,
+        getUser, getNivel, getPlan, getEmpresa, isPlanBasico, isAdmin, isLoggedIn,
         getPermissoes, podeVerRelatorios, podeVenderFiado, podeVerCusto,
         logout, requireAdmin, requirePlan, applyUI, updateBadge,
         init, showModal, _doLogin, _doFirstAccess

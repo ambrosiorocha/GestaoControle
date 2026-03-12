@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <aside id="desktop-sidebar" class="desktop-sidebar hidden md:flex flex-col">
             <div class="sidebar-header" style="display:flex;justify-content:center;align-items:center;gap:8px;">
                 <img src="assets/logo.png" alt="Logo" style="height:28px; object-fit:contain; filter: brightness(0) invert(1);"> 
-                <span>Gestão&Controle</span>
+                <span id="sidebarEmpresaName">Gestão&Controle</span>
             </div>
             <nav id="desktop-nav" class="sidebar-nav flex-1">
                 <a href="index.html" class="nav-link-menu" ${hideInicio}>
@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function () {
             
             <!-- Footer Version & Help -->
             <div style="padding: 0.75rem 1rem; border-top: 1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
-                <span class="text-xs text-gray-400">v${APP_VERSION}</span>
+                <span class="text-xs text-gray-400 font-semibold" style="color:#94a3b8;">Gestor v${APP_VERSION}</span>
                 <button onclick="openHelpModal()" class="w-6 h-6 rounded-full bg-slate-700 hover:bg-slate-600 text-gray-300 text-xs font-bold flex items-center justify-center transition-colors" title="Ajuda">?</button>
             </div>
         </aside>
@@ -250,6 +250,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 const hora = new Date().getHours();
                 const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
                 greetEl.innerHTML = `${saudacao}, <strong>${Auth.getUser()}</strong>! Selecione uma opção abaixo.`;
+            }
+
+            // Atualiza Nome da Empresa na Sidebar
+            const empName = document.getElementById('sidebarEmpresaName');
+            if (empName && typeof Auth.getEmpresa === 'function') {
+                empName.textContent = Auth.getEmpresa();
             }
 
             // Atualiza badge do link Relatórios e Equipe com o plano

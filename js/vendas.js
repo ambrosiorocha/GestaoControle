@@ -824,9 +824,10 @@ function abrirCupom(cupom) {
     let descontoTotal = subtotalBruto - cupom.total;
     if (descontoTotal < 0) descontoTotal = 0;
 
+    const empresaNome = (typeof Auth !== 'undefined' && typeof Auth.getEmpresa === 'function') ? Auth.getEmpresa().toUpperCase() : 'GESTÃO & CONTROLE';
     const html = `
         <div style="text-align:center;font-family:monospace;margin-top:20px;padding:0 10px;">
-        <div style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:4px;color:#000;">GESTÃO & CONTROLE</div>
+        <div style="text-align:center;font-weight:bold;font-size:14px;margin-bottom:4px;color:#000;">${empresaNome}</div>
         <div style="text-align:center;font-size:12px;margin-bottom:8px;color:#000;">Cupom não fiscal</div>
         </div>
         <div style="margin:6px 0;color:#000;">${linhaDupla}</div>

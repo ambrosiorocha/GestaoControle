@@ -108,6 +108,9 @@ function doPost(e) {
         case 'primeiroAcesso':
           result = realizarPrimeiroAcesso(data);
           break;
+        case 'registrarMestra':
+          result = registrarMestra(data);
+          break;
         case 'baixarLancamento':
           result = baixarLancamento(data.id);
           break;
@@ -747,12 +750,33 @@ function autenticarOperador(dados) {
       if (senha === senhaCad) {
         var perm = {};
         try { perm = JSON.parse(String(rows[i][4] || '{}')); } catch(e) {}
+        var emp = 'Gestão&Controle';
+        try { emp = PropertiesService.getScriptProperties().getProperty('empresaNome') || emp; } catch(e){}
+        
+        var licenca = verificarEObterLicenca();
+        var nivelUser = String(rows[i][1] || 'Operador').trim();
+        var planoUser = String(rows[i][3] || 'Pro').trim();
+        var planoFinal = planoUser;
+        
+        // Aplicação da Trava de Plano/Expiração Mestra
+        if (licenca.plano) {
+            var lp = licenca.plano.toLowerCase();
+            if (lp === 'básico' || lp === 'basico') {
+                planoFinal = 'Básico';
+            } else if (lp === 'premium' && nivelUser === 'Admin') {
+                planoFinal = 'Premium';
+            } else if (lp === 'pro' && nivelUser === 'Admin') {
+                planoFinal = 'Pro';
+            }
+        }
+        
         return {
           status:     'sucesso',
           nome:       nome,
-          nivel:      String(rows[i][1] || 'Operador').trim(),
-          plano:      String(rows[i][3] || 'Pro').trim(),
-          permissoes: perm
+          nivel:      nivelUser,
+          plano:      planoFinal,
+          permissoes: perm,
+          empresa:    emp
         };
       } else {
         return { status: 'erro', mensagem: 'Senha incorreta.' };
@@ -816,6 +840,10 @@ function realizarPrimeiroAcesso(dados) {
     var existentes = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues().map(function(r){ return String(r[0]).trim(); });
     if (existentes.indexOf(login) > -1) return { status: 'erro', mensagem: 'Este login já está em uso.' };
   }
+  
+  // Auto-Setup de licença inicial (cria aba Licença com Básico por padrão)
+  verificarEObterLicenca();
+
   // Grava o admin inicial com plano Básico
   sheet.appendRow([login, 'Admin', senha, 'Básico']);
   // Grava nome da empresa em uma aba de configurações gerais (opção: propriedade da planilha)
@@ -840,6 +868,82 @@ function excluirOperador(nome) {
 }
 
 
+
+
+// ==================================================
+// REGISTRO NA MESTRA E CONTROLE DE LICENÇA
+// ==================================================
+
+function registrarMestra(data) {
+  var props = PropertiesService.getScriptProperties();
+  if (props.getProperty('registrado_mestra') === 'sim') return {status: 'ok'};
+  
+  // Link gerado da Master Planilha - A ser preenchido:
+  var urlMestra = "https://script.google.com/macros/s/AKfycbxVGnPtuxvOLxDVduIzJq4a1-xfBzV9krP93aM_SW3X13tRmrKcszm3vTCjlLk4WBo/exec";
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var scriptUrl = '';
+  try { scriptUrl = ScriptApp.getService().getUrl() || ''; } catch(e){}
+  
+  var payload = {
+    nome: data.empresa || "Sem Nome",
+    usuario: data.nome,
+    spreadsheetUrl: ss.getUrl(),
+    spreadsheetId: ss.getId(),
+    scriptUrl: scriptUrl
+  };
+  
+  var options = {
+    method: "POST",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+  
+  try {
+    var response = UrlFetchApp.fetch(urlMestra, options);
+    var resText = response.getContentText();
+    var resObj = JSON.parse(resText);
+    if (resObj.status === 'sucesso') {
+      props.setProperty('registrado_mestra', 'sim');
+    }
+    return {status: 'sucesso'};
+  } catch(e) {
+    return {status: 'erro', mensagem: e.message};
+  }
+}
+
+function verificarEObterLicenca() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  // Usamos 'Licença' porque a 'Configurações' do sistema contém a tabela de usuários e chaves globais ali misturariam
+  var sheet = ss.getSheetByName('Licença');
+  if (!sheet) {
+    sheet = ss.insertSheet('Licença');
+    sheet.appendRow(['Propriedade', 'Valor']);
+    sheet.appendRow(['Plano', 'Básico']);
+    sheet.appendRow(['Expiração', '']);
+    sheet.getRange(1, 1, 1, 2).setFontWeight('bold');
+  }
+  
+  var licenca = { plano: 'Básico', expiracao: '' };
+  var dados = sheet.getDataRange().getValues();
+  for (var i = 1; i < dados.length; i++) {
+    if (dados[i][0] === 'Plano') licenca.plano = dados[i][1];
+    if (dados[i][0] === 'Expiração') licenca.expiracao = dados[i][1];
+  }
+  
+  // Trava de expiração
+  if (licenca.expiracao) {
+    var hoje = new Date();
+    hoje.setHours(0,0,0,0);
+    var dExp = new Date(licenca.expiracao);
+    if (licenca.expiracao instanceof Date) dExp = licenca.expiracao;
+    if (!isNaN(dExp) && dExp < hoje) {
+      licenca.plano = 'Básico'; // Se passou da expiração, vira básico
+    }
+  }
+  return licenca;
+}
 
 function doGet(e) {
   var template = HtmlService.createTemplateFromFile('index.html');

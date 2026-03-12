@@ -355,6 +355,7 @@
                 .then(r => r.json())
                 .then(data => {
                     const ops = (data.status === 'sucesso' && Array.isArray(data.dados)) ? data.dados : [];
+                    window._opsCount = ops.length;
                     if (!ops.length) {
                         list.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Nenhum operador cadastrado.</p>';
                         return;
@@ -384,6 +385,11 @@
 
         // ── Salvar novo operador ──────────────────────────────────────
         function salvarOperador() {
+            if (Auth.getPlan().toLowerCase() === 'pro' && window._opsCount >= 3) {
+                exibirStatus({ status: 'error', mensagem: 'Limite de 3 usuários atingido no Plano Pro. Faça upgrade para o Premium!' });
+                return;
+            }
+
             const login = document.getElementById('opLogin')?.value.trim();
             const senha = document.getElementById('opSenha')?.value;
             const nivel = document.getElementById('opNivel')?.value;
