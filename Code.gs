@@ -890,9 +890,9 @@ function registrarMestra(data) {
   var props = PropertiesService.getScriptProperties();
   if (props.getProperty('registrado_mestra') === 'sim') return {status: 'ok'};
   
-  // Resgata o Telefone do Admin na aba Configurações se não veio explicitamente (caso de retrocompatibilidade)
-  var telefone = data.telefone || data.whatsapp || "";
-  if (!telefone) {
+  // Resgata o Telefone do Admin na aba Configurações se não veio explicitamente (caso de retrocompatibilidade ou trigger de login)
+  var telefone = String(data.telefone || data.whatsapp || "").trim();
+  if (!telefone || telefone === "Ler de Configurações") {
       try {
           var ss = SpreadsheetApp.getActiveSpreadsheet();
           var confSheet = ss.getSheetByName("Configurações");
