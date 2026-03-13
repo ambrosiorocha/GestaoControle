@@ -26,7 +26,7 @@ function doPost(e) {
     // Auto-setup da aba Clientes na Mestra se não existir
     if (!sheet) {
       sheet = ss.insertSheet("Clientes");
-      var headers = ["Nome da Empresa / App", "Usuário Admin", "Link da Planilha", "ScriptURL", "Spreadsheet ID", "Status", "Plano", "Ativação", "Expiração", "Observações"];
+      var headers = ["Nome da Empresa / App", "Usuário Admin", "Link da Planilha", "ScriptURL", "Spreadsheet ID", "Link de Acesso", "Status", "Plano", "Ativação", "Expiração", "Observações"];
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]).setFontWeight("bold").setBackground("#dcfce7");
       sheet.setFrozenRows(1);
     }
@@ -63,20 +63,37 @@ function doPost(e) {
       sheet.getRange(rowToUpdate, 2).setValue(usuario);
       sheet.getRange(rowToUpdate, 3).setValue(spreadsheetUrl);
       sheet.getRange(rowToUpdate, 4).setValue(scriptUrl);
+      // Gera Link Mágico na Coluna F (Índice 6)
+      if (scriptUrl) {
+        var scriptIdMatch = scriptUrl.match(/\/s\/([^\/]+)\/exec/);
+        if (scriptIdMatch && scriptIdMatch[1]) {
+          var magicLink = "https://ambrosiorocha.github.io/VS_Teste/?id=" + scriptIdMatch[1];
+          sheet.getRange(rowToUpdate, 6).setValue(magicLink);
+        }
+      }
     } else {
       // Cria nova linha com Plano Padrão = Básico
-      // A: Empresa, B: Usuário, C: Link, D: ScriptURL, E: Spreadsheet ID, F: Status, G: Plano, H: Ativação, I: Expiração, J: Obs
+      // Extrai o ID do scriptUrl se houver para formar o Link Mágico
+      var linkMagico = "";
+      if (scriptUrl) {
+          var scriptIdMatch = scriptUrl.match(/\/s\/([^\/]+)\/exec/);
+          if (scriptIdMatch && scriptIdMatch[1]) {
+              linkMagico = "https://ambrosiorocha.github.io/VS_Teste/?id=" + scriptIdMatch[1];
+          }
+      }
+
       var novaLinha = [
         empresa,
         usuario,
         spreadsheetUrl,
         scriptUrl,
         spreadsheetId,
-        "Ativo", // Status
-        "Básico", // Plano Padrão
-        "", // Ativação (será preenchida após primeiro onEdit)
-        "", // Expiração
-        "Registro automático via Login"
+        linkMagico,  // Coluna F: Link de Acesso
+        "Ativo",     // Coluna G: Status
+        "Básico",    // Coluna H: Plano Padrão
+        "",          // Coluna I: Ativação
+        "",          // Coluna J: Expiração
+        "Registro automático via Login" // Coluna K: Obs
       ];
       sheet.appendRow(novaLinha);
     }
