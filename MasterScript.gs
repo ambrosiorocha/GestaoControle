@@ -39,9 +39,13 @@ function doPost(e) {
     var empresa = reqData.nome || "Novo Cliente";
     var usuario = reqData.usuario || "N/A";
     var whatsapp = reqData.whatsapp || reqData.telefone || "";
+    var registro = reqData.registro || "";
     var spreadsheetUrl = reqData.spreadsheetUrl || "";
     var scriptUrl = reqData.scriptUrl || "";
     var spreadsheetId = reqData.spreadsheetId || "";
+    var planoPayload = reqData.plano || "Básico";
+    var ativacaoPayload = reqData.ativacao || "";
+    var expiracaoPayload = reqData.expiracao || "";
     
     if (!spreadsheetId) {
       return ContentService.createTextOutput(JSON.stringify({status: "erro", msg: "Sem ID da Planilha"})).setMimeType(ContentService.MimeType.JSON);
@@ -76,6 +80,12 @@ function doPost(e) {
       if(colZap > -1) sheet.getRange(rowToUpdate, colZap + 1).setValue(whatsapp);
       if(colSpread > -1) sheet.getRange(rowToUpdate, colSpread + 1).setValue(spreadsheetUrl);
       if(colScript > -1) sheet.getRange(rowToUpdate, colScript + 1).setValue(scriptUrl);
+      var colPlano = headersCurrent.indexOf("Plano");
+      if(colPlano > -1) sheet.getRange(rowToUpdate, colPlano + 1).setValue(planoPayload);
+      var colAtivacao = headersCurrent.indexOf("Ativação");
+      if(colAtivacao > -1 && ativacaoPayload) sheet.getRange(rowToUpdate, colAtivacao + 1).setValue(ativacaoPayload);
+      var colExpiracao = headersCurrent.indexOf("Expiração");
+      if(colExpiracao > -1 && expiracaoPayload) sheet.getRange(rowToUpdate, colExpiracao + 1).setValue(expiracaoPayload);
 
       // Gera Link Mágico
       if (scriptUrl && colLink > -1) {
@@ -109,9 +119,13 @@ function doPost(e) {
       var colStatus = headersCurrent.indexOf("Status");
       if(colStatus > -1) novaLinha[colStatus] = "Ativo";
       var colPlano = headersCurrent.indexOf("Plano");
-      if(colPlano > -1) novaLinha[colPlano] = "Básico";
+      if(colPlano > -1) novaLinha[colPlano] = planoPayload;
+      var colAtivacao = headersCurrent.indexOf("Ativação");
+      if(colAtivacao > -1) novaLinha[colAtivacao] = ativacaoPayload;
+      var colExpiracao = headersCurrent.indexOf("Expiração");
+      if(colExpiracao > -1) novaLinha[colExpiracao] = expiracaoPayload;
       var colObs = headersCurrent.indexOf("Observações");
-      if(colObs > -1) novaLinha[colObs] = "Registro automático via Login";
+      if(colObs > -1) novaLinha[colObs] = "Registro auto (Data: " + registro + ")";
 
       // fallback simple append row se cabecalho estiver totalmente desconfigurado
       if(colId === -1 || colEmp === -1){

@@ -927,13 +927,23 @@ function registrarMestra(data) {
   var scriptUrl = '';
   try { scriptUrl = ScriptApp.getService().getUrl() || ''; } catch(e){}
   
+  // Lógica de Datas e Expiração Customizada (30 Dias)
+  var tz = Session.getScriptTimeZone();
+  var dtAtual = new Date();
+  var dtExp = new Date();
+  dtExp.setDate(dtExp.getDate() + 30);
+  
   var payload = {
-    nome: data.empresa || "Sem Nome",
-    usuario: data.nome,
-    whatsapp: telefone,
-    spreadsheetUrl: ss.getUrl(),
-    spreadsheetId: ss.getId(),
-    scriptUrl: scriptUrl
+    nome: data.empresa || "Sem Nome", // Vai para "Nome da Empresa / App"
+    usuario: data.nome,               // Vai para "Usuário Admin"
+    whatsapp: telefone,               // Vai para "WhatsApp"
+    registro: Utilities.formatDate(dtAtual, tz, "dd/MM/yyyy HH:mm:ss"), // Data completa do registro
+    spreadsheetUrl: ss.getUrl(),      // Vai para "Link da Planilha"
+    spreadsheetId: ss.getId(),        // Referência (Spreadsheet ID)
+    scriptUrl: scriptUrl,             // Vai para "ScriptURL"
+    plano: "Básico",                  // Determina o plano inicial preenchido
+    ativacao: Utilities.formatDate(dtAtual, tz, "dd/MM/yyyy"), // Vai para "Ativação"
+    expiracao: Utilities.formatDate(dtExp, tz, "dd/MM/yyyy")   // Vai para "Expiração" (+30 dias)
   };
   
   var options = {
