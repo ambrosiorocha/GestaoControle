@@ -863,7 +863,17 @@ function realizarPrimeiroAcesso(dados) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     PropertiesService.getScriptProperties().setProperties({ empresaNome: empresa, adminNome: nome });
   } catch(e) { /* ignora */ }
-  return { status: 'sucesso', mensagem: 'Conta criada com sucesso! Faça seu login.' };
+
+  // Dispara o registro sincrono e garantido na Planilha Mestra
+  try {
+     registrarMestra({
+         nome: nome,
+         empresa: empresa,
+         whatsapp: telefone
+     });
+  } catch(e) {}
+
+  return { status: 'sucesso', mensagem: 'Administrador criado. Faça o login.' };
 }
 
 function excluirOperador(nome) {
