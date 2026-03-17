@@ -87,7 +87,9 @@ function doPost(e) {
 
     var rowToUpdate = -1;
     for (var i = 1; i < dados.length; i++) {
-        if (dados[i][colId] === spreadsheetId || dados[i][4] === spreadsheetId || dados[i][5] === spreadsheetId) {
+        var idMatch = (colId > -1 && dados[i][colId] === spreadsheetId);
+        var scriptMatch = (colScript > -1 && scriptUrl && dados[i][colScript] === scriptUrl);
+        if (idMatch || scriptMatch) {
             rowToUpdate = i + 1;
             break;
         }
