@@ -5,7 +5,7 @@
 
 // ⚙️ URL do webhook da Planilha Mestra (Dual Dispatch)
 // Preencha com a URL do seu Apps Script da Mestra.
-const MASTER_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxVGnPtuxvOLxDVduIzJq4a1-xfBzV9krP93aM_SW3X13tRmrKcszm3vTCjlLk4WBo/exec';
+const MASTER_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbzcgNx583XfUKPzJ1Odi28vQeothOb3ned1pSJeXx8Du11IXEoTmbebthTVJPrkkrk0Bg/exec';
 
 window.Auth = (function () {
     const K = { user: 'sv_user', nivel: 'sv_nivel', ts: 'sv_ts', plano: 'sv_plano', perm: 'sv_permissoes' };
