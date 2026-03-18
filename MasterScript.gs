@@ -105,7 +105,11 @@ function doPost(e) {
     }
 
     if (rowToUpdate > -1) {
-      // Atualiza Cliente Existente (cuidado com gravação excessiva para não estourar tempo, então agrupa se pudesse, mas setValue resolve localmente)
+      // Atualiza Cliente Existente
+      var sIdAtual = colId > -1 ? String(sheet.getRange(rowToUpdate, colId + 1).getValue()) : "";
+      var statusAtual = colStatus > -1 ? String(sheet.getRange(rowToUpdate, colStatus + 1).getValue()) : "";
+      var obsAtual = colObs > -1 ? String(sheet.getRange(rowToUpdate, colObs + 1).getValue()) : "";
+
       if(colEmp > -1 && empresa) sheet.getRange(rowToUpdate, colEmp + 1).setValue(empresa);
       if(colUser > -1 && usuario) sheet.getRange(rowToUpdate, colUser + 1).setValue(usuario);
       if(colZap > -1 && whatsapp) sheet.getRange(rowToUpdate, colZap + 1).setValue(whatsapp);
@@ -115,6 +119,18 @@ function doPost(e) {
       if(colPlano > -1 && planoPayload) sheet.getRange(rowToUpdate, colPlano + 1).setValue(planoPayload);
       if(colAtivacao > -1 && ativacaoPayload) sheet.getRange(rowToUpdate, colAtivacao + 1).setValue(ativacaoPayload);
       if(colExpiracao > -1 && expiracaoPayload) sheet.getRange(rowToUpdate, colExpiracao + 1).setValue(expiracaoPayload);
+      
+      // Os novos blocos gravam dados em campos vazios para não sobrescrever:
+      if(colId > -1 && spreadsheetId && (!sIdAtual || sIdAtual === "undefined" || sIdAtual === "")) {
+          sheet.getRange(rowToUpdate, colId + 1).setValue(spreadsheetId);
+      }
+      if(colStatus > -1 && (!statusAtual || statusAtual === "")) {
+          sheet.getRange(rowToUpdate, colStatus + 1).setValue("Ativo");
+      }
+      if(colObs > -1) {
+          var textObs = obsAtual ? obsAtual + " / Primeiro Acesso Realizado (" + registro + ")" : "Registro auto (Data: " + registro + ")";
+          sheet.getRange(rowToUpdate, colObs + 1).setValue(textObs);
+      }
     } else {
       // Inserir Novo Cliente Seguro
       var novaLinha = [];
