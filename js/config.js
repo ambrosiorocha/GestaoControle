@@ -5,10 +5,14 @@
 
     // Se passarem um param ?id=NaURL, salvar no localStorage
     if (paramId) {
-        let finalUrl = paramId.startsWith('http') ? paramId : `https://script.google.com/macros/s/${paramId}/exec`;
+        let cleanId = paramId.trim().replace(/\/exec\/?$/, ''); // Evita duplicação do /exec
+        let finalUrl = cleanId.startsWith('http') ? cleanId : `https://script.google.com/macros/s/${cleanId}/exec`;
+
         localStorage.setItem('script_url', finalUrl);
-        // Remove param from URL to keep it clean (opcional)
-        window.history.replaceState({}, document.title, window.location.pathname);
+
+        // Força o reload limpo para igualar o ciclo de vida do salvamento manual
+        window.location.href = window.location.pathname;
+        return; // interrompe a execução até que recarregue limpo
     }
 
     // 2. Tentar ler do localStorage
