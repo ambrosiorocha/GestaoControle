@@ -212,7 +212,16 @@ window.Auth = (function () {
             method: 'POST',
             body: JSON.stringify({
                 action: 'primeiroAcesso',
-                data: { nomeCompleto, empresa, whatsapp: telefone, login, senha }
+                data: {
+                    nomeCompleto,
+                    empresa,
+                    whatsapp: telefone,
+                    login,
+                    senha,
+                    registro: sharedMeta.registro,
+                    ativacao: sharedMeta.ativacao,
+                    expiracao: sharedMeta.expiracao
+                }
             })
         })
             .then(r => r.text())
@@ -222,27 +231,6 @@ window.Auth = (function () {
             })
             .then(data => {
                 if (data.status === 'sucesso') {
-                    // ── 2. Disparo Paralelo → Planilha Mestra (fire-and-forget) ──
-                    if (MASTER_WEBHOOK_URL) {
-                        const masterPayload = {
-                            nome: empresa,
-                            usuario: nomeCompleto,
-                            whatsapp: telefone,
-                            scriptUrl: data.scriptUrl || window.SCRIPT_URL || '',
-                            spreadsheetId: data.spreadsheetId || '',
-                            spreadsheetUrl: data.spreadsheetUrl || '',
-                            registro: sharedMeta.registro,
-                            plano: sharedMeta.plano,
-                            ativacao: sharedMeta.ativacao,
-                            expiracao: sharedMeta.expiracao
-                        };
-                        fetch(MASTER_WEBHOOK_URL, {
-                            method: 'POST',
-                            body: JSON.stringify(masterPayload),
-                            headers: { 'Content-Type': 'application/json' }
-                        }).catch(() => { });
-                    }
-
                     // Fecha o modal e abre o login
                     const fa = document.getElementById('firstAccessOverlay');
                     if (fa) fa.remove();
