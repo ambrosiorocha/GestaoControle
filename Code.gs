@@ -863,18 +863,66 @@ function realizarPrimeiroAcesso(dados) {
     PropertiesService.getScriptProperties().setProperties({ empresaNome: empresa, adminNome: nome });
   } catch(e) { /* ignora */ }
 
-  // Retorna IDs para o frontend poder enviar para a Mestra via Dual Dispatch
+  // Coleta IDs para enviar à Mestra via notificarMestra()
   var ss2 = SpreadsheetApp.getActiveSpreadsheet();
   var scriptUrlRet = '';
   try { scriptUrlRet = ScriptApp.getService().getUrl() || ''; } catch(e) {}
 
-  return {
-    status: 'sucesso',
-    mensagem: 'Administrador criado. Faça o login.',
-    spreadsheetId: ss2.getId(),
+  // Repassa os dados para a Planilha Mestra (backend-to-backend)
+  notificarMestra({
+    nome:           empresa,
+    usuario:        nome,
+    whatsapp:       telefone,
+    scriptUrl:      scriptUrlRet,
+    spreadsheetId:  ss2.getId(),
     spreadsheetUrl: ss2.getUrl(),
-    scriptUrl: scriptUrlRet
+    registro:       dados.registro || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss'),
+    plano:          'Básico',
+    ativacao:       dados.ativacao || '',
+    expiracao:      dados.expiracao || ''
+  });
+
+  return { status: 'sucesso', mensagem: 'Administrador criado. Faça o login.' };
+}
+
+// ==================================================
+// NOTIFICAR PLANILHA MESTRA (Backend-to-Backend)
+// ==================================================
+function notificarMestra(payload) {
+  var MASTER_URL = 'https://script.google.com/macros/s/AKfycbzcgNx583XfUKPzJ1Odi28vQeothOb3ned1pSJeXx8Du11IXEoTmbebthTVJPrkkrk0Bg/exec';
+
+  var options = {
+    'method': 'post',
+    'contentType': 'application/json',
+    'payload': JSON.stringify(payload),
+    'muteHttpExceptions': true
   };
+
+  try {
+    var response = UrlFetchApp.fetch(MASTER_URL, options);
+    console.log('[notificarMestra] Status: ' + response.getResponseCode());
+    console.log('[notificarMestra] Resposta: ' + response.getContentText());
+  } catch(e) {
+    console.error('[notificarMestra] FALHA: ' + e.message);
+  }
+}
+
+// Função de TESTE manual — Execute uma vez no editor do Apps Script para
+// conceder a permissão de URL Fetch (OAuth scope: external requests)
+function testarConexaoMestra() {
+  notificarMestra({
+    nome:           'EMPRESA TESTE',
+    usuario:        'Teste Manual',
+    whatsapp:       '11999999999',
+    scriptUrl:      ScriptApp.getService().getUrl(),
+    spreadsheetId:  SpreadsheetApp.getActiveSpreadsheet().getId(),
+    spreadsheetUrl: SpreadsheetApp.getActiveSpreadsheet().getUrl(),
+    registro:       Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'dd/MM/yyyy HH:mm:ss'),
+    plano:          'Básico',
+    ativacao:       '18/03/2026',
+    expiracao:      '17/04/2026'
+  });
+  console.log('[testarConexaoMestra] Concluído. Veja os logs acima.');
 }
 
 function excluirOperador(nome) {
