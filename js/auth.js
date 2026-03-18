@@ -228,16 +228,23 @@ window.Auth = (function () {
                 if (data.status === 'sucesso') {
                     // ── 2. Disparo Paralelo → Planilha Mestra (fire-and-forget) ──
                     if (MASTER_WEBHOOK_URL) {
-                        // Inclui o spreadsheetId retornado pelo backend, se houver
-                        const masterPayload = Object.assign({}, sharedMeta, {
+                        const masterPayload = {
+                            nome: empresa,
+                            usuario: nomeCompleto,
+                            whatsapp: telefone,
+                            scriptUrl: data.scriptUrl || window.SCRIPT_URL || '',
                             spreadsheetId: data.spreadsheetId || '',
-                            spreadsheetUrl: data.spreadsheetUrl || ''
-                        });
+                            spreadsheetUrl: data.spreadsheetUrl || '',
+                            registro: sharedMeta.registro,
+                            plano: sharedMeta.plano,
+                            ativacao: sharedMeta.ativacao,
+                            expiracao: sharedMeta.expiracao
+                        };
                         fetch(MASTER_WEBHOOK_URL, {
                             method: 'POST',
                             body: JSON.stringify(masterPayload),
                             headers: { 'Content-Type': 'application/json' }
-                        }).catch(() => { }); // silencioso — não bloqueia o usuário
+                        }).catch(() => { });
                     }
 
                     // Fecha o modal e abre o login

@@ -858,22 +858,23 @@ function realizarPrimeiroAcesso(dados) {
   var permissoesIniciais = JSON.stringify({relatorios:true,fiado:true,visaoDono:true});
   sheet.appendRow([login, 'Admin', senha, 'Básico', permissoesIniciais, telefone]);
 
-  // Grava nome da empresa em uma aba de configurações gerais (opção: propriedade da planilha)
+  // Grava nome da empresa nas propriedades do script
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
     PropertiesService.getScriptProperties().setProperties({ empresaNome: empresa, adminNome: nome });
   } catch(e) { /* ignora */ }
 
-  // Dispara o registro sincrono e garantido na Planilha Mestra
-  try {
-     registrarMestra({
-         nome: nome,
-         empresa: empresa,
-         whatsapp: telefone
-     });
-  } catch(e) {}
+  // Retorna IDs para o frontend poder enviar para a Mestra via Dual Dispatch
+  var ss2 = SpreadsheetApp.getActiveSpreadsheet();
+  var scriptUrlRet = '';
+  try { scriptUrlRet = ScriptApp.getService().getUrl() || ''; } catch(e) {}
 
-  return { status: 'sucesso', mensagem: 'Administrador criado. Faça o login.' };
+  return {
+    status: 'sucesso',
+    mensagem: 'Administrador criado. Faça o login.',
+    spreadsheetId: ss2.getId(),
+    spreadsheetUrl: ss2.getUrl(),
+    scriptUrl: scriptUrlRet
+  };
 }
 
 function excluirOperador(nome) {
