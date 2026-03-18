@@ -2,6 +2,11 @@
 // AUTH.JS — Autenticação, Primeiro Acesso e Controle de Acesso
 // Depende de: config.js (window.SCRIPT_URL)
 // ============================================================
+
+// ⚙️ URL do webhook da Planilha Mestra (Dual Dispatch)
+// Preencha com a URL do seu Apps Script da Mestra.
+const MASTER_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbxVGnPtuxvOLxDVduIzJq4a1-xfBzV9krP93aM_SW3X13tRmrKcszm3vTCjlLk4WBo/exec';
+
 window.Auth = (function () {
     const K = { user: 'sv_user', nivel: 'sv_nivel', ts: 'sv_ts', plano: 'sv_plano', perm: 'sv_permissoes' };
     const SESSION_MS = 8 * 3600 * 1000;
@@ -170,7 +175,7 @@ window.Auth = (function () {
             .catch(() => callback(false));
     }
 
-    // ── Salvar primeiro acesso ────────────────────────────────────
+    // ── Salvar primeiro acesso (Dual Dispatch) ────────────────
     function _doFirstAccess() {
         const nomeCompleto = document.getElementById('faNomeCompleto')?.value.trim();
         const empresa = document.getElementById('faEmpresa')?.value.trim();
@@ -182,7 +187,7 @@ window.Auth = (function () {
 
         if (!nomeCompleto) { errEl.textContent = 'Informe seu nome completo.'; errEl.style.display = 'block'; return; }
         if (!empresa) { errEl.textContent = 'Informe o nome da empresa.'; errEl.style.display = 'block'; return; }
-        if (!telefone || telefone.length < 10) { errEl.textContent = 'Informe um WhatsApp válido (apenas os 10 ou 11 números, com DDD).'; errEl.style.display = 'block'; return; }
+        if (!telefone || telefone.length < 10) { errEl.textContent = 'Informe um WhatsApp válido (10 ou 11 números com DDD).'; errEl.style.display = 'block'; return; }
         if (!login) { errEl.textContent = 'Defina um login de acesso.'; errEl.style.display = 'block'; return; }
         if (!senha || senha.length < 4) { errEl.textContent = 'A senha deve ter ao menos 4 caracteres.'; errEl.style.display = 'block'; return; }
 
@@ -190,6 +195,23 @@ window.Auth = (function () {
         btn.textContent = 'Salvando...';
         errEl.style.display = 'none';
 
+        // ── Payload compartilhado ──────────────────────────────
+        const now = new Date();
+        const exp = new Date(); exp.setDate(exp.getDate() + 30);
+        const fmt = d => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+
+        const sharedMeta = {
+            nome: nomeCompleto,
+            empresa: empresa,
+            whatsapp: telefone,
+            scriptUrl: window.SCRIPT_URL || '',
+            registro: now.toLocaleString('pt-BR'),
+            plano: 'Básico',
+            ativacao: fmt(now),
+            expiracao: fmt(exp)
+        };
+
+        // ── 1. Disparo Principal → SCRIPT_URL do cliente ───────
         fetch(window.SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify({
@@ -197,23 +219,34 @@ window.Auth = (function () {
                 data: { nomeCompleto, empresa, whatsapp: telefone, login, senha }
             })
         })
-            .then(r => r.text()).then(txt => {
+            .then(r => r.text())
+            .then(txt => {
                 try { return JSON.parse(txt); }
-                catch (e) { throw new Error('Resposta inválida.'); }
+                catch (e) { throw new Error('Resposta inválida do servidor.'); }
             })
             .then(data => {
                 if (data.status === 'sucesso') {
+                    // ── 2. Disparo Paralelo → Planilha Mestra (fire-and-forget) ──
+                    if (MASTER_WEBHOOK_URL) {
+                        // Inclui o spreadsheetId retornado pelo backend, se houver
+                        const masterPayload = Object.assign({}, sharedMeta, {
+                            spreadsheetId: data.spreadsheetId || '',
+                            spreadsheetUrl: data.spreadsheetUrl || ''
+                        });
+                        fetch(MASTER_WEBHOOK_URL, {
+                            method: 'POST',
+                            body: JSON.stringify(masterPayload),
+                            headers: { 'Content-Type': 'application/json' }
+                        }).catch(() => { }); // silencioso — não bloqueia o usuário
+                    }
+
                     // Fecha o modal e abre o login
                     const fa = document.getElementById('firstAccessOverlay');
                     if (fa) fa.remove();
                     showModal(_cb);
-                    // Mensagem de sucesso no login
                     setTimeout(() => {
                         const loginMsg = document.getElementById('loginSuccessMsg');
-                        if (loginMsg) {
-                            loginMsg.textContent = '✅ Conta criada! Faça seu login abaixo.';
-                            loginMsg.style.display = 'block';
-                        }
+                        if (loginMsg) { loginMsg.textContent = '✅ Conta criada! Faça seu login abaixo.'; loginMsg.style.display = 'block'; }
                         const loginNome = document.getElementById('loginNome');
                         if (loginNome) loginNome.value = login;
                     }, 100);
@@ -224,7 +257,7 @@ window.Auth = (function () {
                     btn.textContent = '🚀 Criar minha conta';
                 }
             })
-            .catch(err => {
+            .catch(() => {
                 errEl.textContent = 'Falha na conexão. Tente novamente.';
                 errEl.style.display = 'block';
                 btn.disabled = false;

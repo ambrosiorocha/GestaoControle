@@ -891,80 +891,12 @@ function excluirOperador(nome) {
 
 
 
-
 // ==================================================
-// REGISTRO NA MESTRA E CONTROLE DE LICENÇA
+// CONTROLE DE LICENÇA
 // ==================================================
-
-function registrarMestra(data) {
-  var props = PropertiesService.getScriptProperties();
-  if (props.getProperty('registrado_mestra') === 'sim') return {status: 'ok'};
-  
-  // Resgata o Telefone do Admin na aba Configurações se não veio explicitamente (caso de retrocompatibilidade ou trigger de login)
-  var telefone = String(data.telefone || data.whatsapp || "").trim();
-  if (!telefone || telefone === "Ler de Configurações") {
-      try {
-          var ss = SpreadsheetApp.getActiveSpreadsheet();
-          var confSheet = ss.getSheetByName("Configurações");
-          if(confSheet) {
-              var td = confSheet.getDataRange().getValues();
-              var telIdx = td[0].indexOf("Telefone");
-              if (telIdx === -1) telIdx = 5; // fallback
-              for(var i = 1; i < td.length; i++) {
-                  if(td[i][1] === "Admin") {
-                      telefone = String(td[i][telIdx] || "");
-                      if(telefone) break;
-                  }
-              }
-          }
-      } catch(e){}
-  }
-
-  // Link gerado da Master Planilha - A ser preenchido:
-  var urlMestra = "https://script.google.com/macros/s/AKfycbxVGnPtuxvOLxDVduIzJq4a1-xfBzV9krP93aM_SW3X13tRmrKcszm3vTCjlLk4WBo/exec";
-  
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var scriptUrl = '';
-  try { scriptUrl = ScriptApp.getService().getUrl() || ''; } catch(e){}
-  
-  // Lógica de Datas e Expiração Customizada (30 Dias)
-  var tz = Session.getScriptTimeZone();
-  var dtAtual = new Date();
-  var dtExp = new Date();
-  dtExp.setDate(dtExp.getDate() + 30);
-  
-  var payload = {
-    nome: data.empresa || "Sem Nome", // Vai para "Nome da Empresa / App"
-    usuario: data.nome,               // Vai para "Usuário Admin"
-    whatsapp: telefone,               // Vai para "WhatsApp"
-    registro: Utilities.formatDate(dtAtual, tz, "dd/MM/yyyy HH:mm:ss"), // Data completa do registro
-    spreadsheetUrl: ss.getUrl(),      // Vai para "Link da Planilha"
-    spreadsheetId: ss.getId(),        // Referência (Spreadsheet ID)
-    scriptUrl: scriptUrl,             // Vai para "ScriptURL"
-    plano: "Básico",                  // Determina o plano inicial preenchido
-    ativacao: Utilities.formatDate(dtAtual, tz, "dd/MM/yyyy"), // Vai para "Ativação"
-    expiracao: Utilities.formatDate(dtExp, tz, "dd/MM/yyyy")   // Vai para "Expiração" (+30 dias)
-  };
-  
-  var options = {
-    method: "POST",
-    contentType: "application/json",
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  };
-  
-  try {
-    var response = UrlFetchApp.fetch(urlMestra, options);
-    var resText = response.getContentText();
-    var resObj = JSON.parse(resText);
-    if (resObj.status === 'sucesso') {
-      props.setProperty('registrado_mestra', 'sim');
-    }
-    return {status: 'sucesso'};
-  } catch(e) {
-    return {status: 'erro', mensagem: e.message};
-  }
-}
+// NOTA: O registro na Planilha Mestra agora é feito
+// pelo frontend (js/auth.js) via Dual Dispatch.
+// A função registrarMestra() foi removida do backend.
 
 function verificarEObterLicenca() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
