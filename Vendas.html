@@ -300,7 +300,7 @@
 
                 <div class="overflow-x-auto w-full mb-4">
                     <table class="w-full text-left border-collapse bg-white shadow-sm overflow-hidden"
-                        style="border:1px solid #e2e8f0; border-radius:0.75rem;">
+                        style="border:1px solid #e2e8f0; border-radius:0.75rem; min-width: 500px;">
                         <thead>
                             <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
                                 <th style="padding:0.75rem; font-weight:600; color:#475569; font-size:0.8rem;">Produto
@@ -332,28 +332,27 @@
 
                 <!-- TOTAIS + BOTÕES -->
                 <div class="total-bar" style="background: #1e293b; color: white; border: 1px solid #0f172a;">
-                    <div
-                        style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 w-full">
                         <div>
                             <div class="label" style="opacity:0.8; font-weight:600; color: #cbd5e1;">Total do Pedido
                             </div>
-                            <div class="value" id="totalCarrinho" style="color:white;">R$ 0,00</div>
+                            <div class="value" id="totalCarrinho" style="color:white; font-size:1.4rem;">R$ 0,00</div>
                             <div class="label" id="qtdItensLabel" style="margin-top:2px;">0 item(ns)</div>
                         </div>
-                        <!-- Dois botões lado a lado, mesmo tamanho -->
-                        <div style="display:flex; gap:0.5rem; flex-shrink:0;">
-                            <button onclick="salvarRascunho()" id="btnRascunho" disabled style="flex:1; padding:0.55rem 1.1rem; border-radius:0.5rem;
-                                       border:2px solid #94a3b8; background:white; color:#334155;
-                                       font-weight:600; font-size:0.82rem; cursor:not-allowed;
-                                       transition:all 0.15s; white-space:nowrap;"
+                        <!-- Botões responsivos (100% de largura no mobile, lado a lado no desktop) -->
+                        <div class="flex w-full sm:w-auto gap-2">
+                            <button onclick="salvarRascunho()" id="btnRascunho" disabled
+                                class="flex-1 sm:flex-none px-4 py-2 font-semibold text-sm rounded-lg border-2 border-slate-400 bg-white text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 onmouseover="if(!this.disabled){this.style.background='#f1f5f9'}"
-                                onmouseout="if(!this.disabled){this.style.background='white'}">
+                                onmouseout="if(!this.disabled){this.style.background='white'}"
+                                style="white-space:nowrap;">
                                 💾 Rascunho
                             </button>
-                            <button id="btnFinalizar" disabled onclick="abrirModal()" style="flex:1; padding:0.55rem 1.1rem; border-radius:0.5rem;
-                                       border:none; background:#16a34a; color:white;
-                                       font-weight:700; font-size:0.82rem; cursor:not-allowed;
-                                       transition:all 0.15s; white-space:nowrap;">
+                            <button id="btnFinalizar" disabled onclick="abrirModal()"
+                                class="flex-1 sm:flex-none px-4 py-2 font-bold text-sm rounded-lg bg-green-600 border-2 border-green-600 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                onmouseover="if(!this.disabled){this.style.background='#15803d'; this.style.borderColor='#15803d'}"
+                                onmouseout="if(!this.disabled){this.style.background='#16a34a'; this.style.borderColor='#16a34a'}"
+                                style="white-space:nowrap;">
                                 ✅ Finalizar →
                             </button>
                         </div>
@@ -391,7 +390,7 @@
                     </div>
                 </div>
                 <div class="table-scroll-wrapper" style="max-height: 500px;">
-                    <table class="data-table">
+                    <table class="data-table" style="min-width: 800px;">
                         <thead>
                             <tr>
                                 <th>ID</th>
