@@ -41,14 +41,17 @@ function doPost(e) {
     
     var reqData = json.data || json;
     
-    var empresa = reqData.nome || "Novo Cliente";
-    var usuario = reqData.usuario || "N/A";
+    var reqData = json.data || json;
+    var action = reqData.action || "registro";
+    
+    var empresa = reqData.nome || "";
+    var usuario = reqData.usuario || "";
     var whatsapp = reqData.whatsapp || reqData.telefone || "";
     var registro = reqData.registro || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss");
     var spreadsheetUrl = reqData.spreadsheetUrl || "";
     var scriptUrl = reqData.scriptUrl || "";
     var spreadsheetId = reqData.spreadsheetId || "";
-    var planoPayload = reqData.plano || "Básico";
+    var planoPayload = reqData.plano || "";
     var ativacaoPayload = reqData.ativacao || "";
     var expiracaoPayload = reqData.expiracao || "";
     
@@ -148,22 +151,22 @@ function doPost(e) {
       var novaLinha = [];
       for(var c=0; c<headersCurrent.length; c++) novaLinha.push(""); // Inicializa com strings preenchidas
       
-      if(colEmp > -1) novaLinha[colEmp] = empresa;
-      if(colUser > -1) novaLinha[colUser] = usuario;
+      if(colEmp > -1) novaLinha[colEmp] = empresa || "Novo Cliente";
+      if(colUser > -1) novaLinha[colUser] = usuario || "N/A";
       if(colZap > -1) novaLinha[colZap] = whatsapp;
       if(colSpread > -1) novaLinha[colSpread] = spreadsheetUrl;
       if(colScript > -1) novaLinha[colScript] = scriptUrl;
       if(colId > -1) novaLinha[colId] = spreadsheetId;
       if(colLink > -1) novaLinha[colLink] = linkMagico;
       if(colStatus > -1) novaLinha[colStatus] = "Ativo";
-      if(colPlano > -1) novaLinha[colPlano] = planoPayload;
+      if(colPlano > -1) novaLinha[colPlano] = planoPayload || "Básico";
       if(colAtivacao > -1) novaLinha[colAtivacao] = ativacaoPayload;
       if(colExpiracao > -1) novaLinha[colExpiracao] = expiracaoPayload;
       if(colObs > -1) novaLinha[colObs] = "Registro auto (Data: " + registro + ")";
       
       // Fallback
       if(colId === -1 || colEmp === -1){
-         novaLinha = [empresa, usuario, whatsapp, spreadsheetUrl, scriptUrl, spreadsheetId, linkMagico, "Ativo", planoPayload, ativacaoPayload, expiracaoPayload, "Registro auto"];
+         novaLinha = [empresa || "Novo Cliente", usuario || "N/A", whatsapp, spreadsheetUrl, scriptUrl, spreadsheetId, linkMagico, "Ativo", planoPayload || "Básico", ativacaoPayload, expiracaoPayload, "Registro auto"];
       }
       
       // Procura a primeira linha realmente vazia na Coluna A (Empresa) e E (ScriptURL)

@@ -139,8 +139,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             <!-- Badge do usuário logado -->
             <div class="user-badge-block">
-                <div id="userBadge" style="line-height:1.4;">—</div>
-                <button class="logout-btn" onclick="Auth.logout()">⎋ Sair do sistema</button>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div id="userBadge" style="line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;">—</div>
+                    <button onclick="abrirModalConta()" style="background:none; border:none; cursor:pointer; font-size:1.1rem; padding:0.2rem; margin-left:8px; opacity:0.7; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'" title="Configurações da Conta">⚙️</button>
+                </div>
+                <button class="logout-btn" onclick="Auth.logout()" style="margin-top:8px;">⎋ Sair do sistema</button>
             </div>
             
             <!-- Footer Version & Help -->
@@ -199,6 +202,32 @@ document.addEventListener('DOMContentLoaded', function () {
                             Falar no WhatsApp
                         </a>
                     </div>
+                </div>
+            </div>
+        <!-- Modal Configurações de Conta -->
+        <div id="modalConta" class="fixed inset-0 bg-slate-900/60 z-[1200] hidden items-center justify-center p-4">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
+                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-slate-50">
+                    <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        ⚙️ Configurações da Conta
+                    </h3>
+                    <button onclick="fecharModalConta()" class="text-gray-400 hover:text-red-500 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="p-5">
+                    <div id="contaError" style="display:none;background:#fee2e2;color:#991b1b;border-radius:0.5rem;padding:0.6rem;font-size:0.82rem;margin-bottom:1rem;"></div>
+                    <div class="form-group mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Novo Nome de Usuário</label>
+                        <input type="text" id="novoUsuarioConta" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Ex: admin">
+                    </div>
+                    <div class="form-group mb-4">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nova Senha</label>
+                        <input type="password" id="novaSenhaConta" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Deixe em branco para não alterar">
+                    </div>
+                    <button id="btnSalvarConta" onclick="salvarConfiguracoesConta()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg transition-colors flex justify-center items-center gap-2">
+                        ✅ Salvar Alterações
+                    </button>
                 </div>
             </div>
         </div>
@@ -467,6 +496,71 @@ window.switchHelpTab = function (tabName) {
     if (tabBtn) {
         tabBtn.className = "flex-1 py-3 text-sm font-semibold text-blue-600 border-b-2 border-blue-600 bg-blue-50/30 transition-colors";
     }
+};
+
+// ── Funções Globais Configurações de Conta ────────────────
+window.abrirModalConta = function () {
+    document.getElementById('novoUsuarioConta').value = Auth.getUser() || '';
+    document.getElementById('novaSenhaConta').value = '';
+    document.getElementById('contaError').style.display = 'none';
+    const m = document.getElementById('modalConta');
+    if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+};
+
+window.fecharModalConta = function () {
+    const m = document.getElementById('modalConta');
+    if (m) { m.classList.remove('flex'); m.classList.add('hidden'); }
+};
+
+window.salvarConfiguracoesConta = function () {
+    const usuario = document.getElementById('novoUsuarioConta').value.trim();
+    const senha = document.getElementById('novaSenhaConta').value.trim();
+    const err = document.getElementById('contaError');
+    const btn = document.getElementById('btnSalvarConta');
+
+    if (!usuario) {
+        err.textContent = 'O Nome de usuário não pode ficar vazio.';
+        err.style.display = 'block';
+        return;
+    }
+
+    err.style.display = 'none';
+    btn.innerHTML = '⏳ Salvando...';
+    btn.disabled = true;
+
+    fetch(window.SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            action: 'atualizarCredenciais',
+            usuario: usuario,
+            senha: senha || '' // Vazio = não alterar
+        })
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'sucesso' || data.status === 'ok') {
+                window.fecharModalConta();
+                Auth.setUser(usuario);
+                document.getElementById('userBadge').textContent = usuario;
+                if (typeof exibirStatus === 'function') {
+                    exibirStatus({ status: 'success', mensagem: '✅ Acesso atualizado com sucesso!' });
+                } else {
+                    alert('Credenciais atualizadas com sucesso!');
+                }
+            } else {
+                err.textContent = data.mensagem || 'Erro ao atualizar configurações.';
+                err.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            err.textContent = 'Erro de conexão: ' + error.message;
+            err.style.display = 'block';
+        })
+        .finally(() => {
+            btn.innerHTML = '✅ Salvar Alterações';
+            btn.disabled = false;
+        });
 };
 
 // ==========================================

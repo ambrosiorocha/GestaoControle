@@ -111,6 +111,9 @@ function doPost(e) {
         case 'registrarMestra':
           result = registrarMestra(data);
           break;
+        case 'atualizarCredenciais':
+          result = atualizarCredenciais(data);
+          break;
         case 'baixarLancamento':
           result = baixarLancamento(data.id);
           break;
@@ -716,6 +719,67 @@ function obterConfiguracoes() {
 }
 
 // Retorna lista de {nome, nivel, plano, permissoes} — SEM senhas
+function FORCAR_AUTORIZACAO() {
+  UrlFetchApp.fetch("https://google.com");
+}
+
+// ==================================================
+// ATUALIZAR CREDENCIAIS E NOTIFICAR MESTRA
+// ==================================================
+function atualizarCredenciais(dados) {
+  var sheet = obterConfiguracoes();
+  if (!sheet) return { status: 'erro', mensagem: 'Aba Configurações não encontrada.' };
+  
+  if (!dados || !dados.usuario) {
+    return { status: 'erro', mensagem: 'O usuário não pode ser vazio.' };
+  }
+
+  var novoUsuario = String(dados.usuario).trim();
+  var novaSenha = dados.senha ? String(dados.senha) : '';
+
+  // Procurar o Administrador
+  var lastRow = sheet.getLastRow();
+  var atualizado = false;
+
+  if (lastRow > 1) {
+    var valores = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+    for (var i = 0; i < valores.length; i++) {
+      var role = String(valores[i][1]).toLowerCase();
+      if (role === 'admin' || role === 'administrador') {
+        var rowNum = i + 2;
+        sheet.getRange(rowNum, 1).setValue(novoUsuario); // Coluna A: Login
+        if (novaSenha !== '') {
+          sheet.getRange(rowNum, 3).setValue(novaSenha); // Coluna C: Senha
+        }
+        atualizado = true;
+        break;
+      }
+    }
+  }
+
+  if (!atualizado) {
+    return { status: 'erro', mensagem: 'Administrador não encontrado na planilha.' };
+  }
+
+  // Notificar Mestra sobre a mudança do NOME DE USUÁRIO
+  try {
+    var idPlanilha = SpreadsheetApp.getActiveSpreadsheet().getId();
+    var sUrl = '';
+    try { sUrl = ScriptApp.getService().getUrl() || ''; } catch(e){}
+    
+    var payloadMestra = {
+      action: 'atualizarCredencialMestra',
+      spreadsheetId: idPlanilha,
+      scriptUrl: sUrl,
+      usuario: novoUsuario
+    };
+    notificarMestra(payloadMestra);
+  } catch(e) {
+    console.error('Falha ao notificar a Mestra: ' + e.message);
+  }
+
+  return { status: 'sucesso', mensagem: 'As configurações de conta foram atualizadas.' };
+}
 function obterOperadores() {
   var sheet = obterConfiguracoes();
   if (sheet.getLastRow() < 2) return [{ nome: 'Administrador', nivel: 'Admin', plano: 'Pro', permissoes: {} }];

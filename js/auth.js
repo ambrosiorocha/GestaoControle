@@ -383,13 +383,21 @@ window.Auth = (function () {
             <input id="loginSenha" type="password" placeholder="••••••••" autocomplete="current-password"
                 style="${_sharedInputStyle}margin-bottom:1.25rem;">
 
-            <!-- Botão entrar -->
             <button id="loginBtn" onclick="Auth._doLogin()"
                 style="width:100%;padding:0.85rem;background:linear-gradient(135deg,#16a34a,#15803d);color:white;
                 border:none;border-radius:0.625rem;font-weight:700;font-size:0.95rem;cursor:pointer;
                 font-family:'Poppins',sans-serif;box-shadow:0 4px 12px rgba(22,163,74,0.35);">
                 🔑 Entrar
             </button>
+
+            <!-- Esqueci a Senha -->
+            <div style="text-align:center; margin-top:0.85rem;">
+                <a href="https://wa.me/5581981438242?text=Ol%C3%A1%2C%20suporte!%20Esqueci%20a%20senha%20de%20acesso%20do%20meu%20painel.%20O%20nome%20da%20minha%20loja%2Fempresa%20%C3%A9%3A%20%5BDIGITE%20O%20NOME%20DA%20SUA%20LOJA%20AQUI%5D.%20Podem%20me%20ajudar%20a%20redefinir%3F" 
+                   target="_blank" 
+                   style="color:#64748b; font-size:0.78rem; text-decoration:underline;">
+                    Esqueci minha senha
+                </a>
+            </div>
 
             <!-- Primeiro acesso -->
             <p style="text-align:center;font-size:0.74rem;color:#94a3b8;margin-top:1rem;margin-bottom:0;position:relative;z-index:10000;">
