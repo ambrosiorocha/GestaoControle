@@ -88,7 +88,19 @@ function doPost(e) {
     var rowToUpdate = -1;
     for (var i = 1; i < dados.length; i++) {
         var idMatch = (colId > -1 && dados[i][colId] === spreadsheetId);
-        var scriptMatch = (colScript > -1 && scriptUrl && dados[i][colScript] === scriptUrl);
+        
+        var scriptMatch = false;
+        if (colScript > -1 && scriptUrl) {
+            var urlPlanilha = String(dados[i][colScript]).trim();
+            var id1 = scriptUrl.match(/\/s\/([^\/]+)/);
+            var id2 = urlPlanilha.match(/\/s\/([^\/]+)/);
+            if (id1 && id2 && id1[1] === id2[1]) {
+                scriptMatch = true;
+            } else if (urlPlanilha === scriptUrl.trim()) {
+                scriptMatch = true;
+            }
+        }
+        
         if (idMatch || scriptMatch) {
             rowToUpdate = i + 1;
             break;
@@ -132,7 +144,7 @@ function doPost(e) {
           sheet.getRange(rowToUpdate, colObs + 1).setValue(textObs);
       }
     } else {
-      // Inserir Novo Cliente Seguro
+      // Inserir Novo Cliente Seguro (evita jogar para a linha 1000 se houver fórmulas arrastadas)
       var novaLinha = [];
       for(var c=0; c<headersCurrent.length; c++) novaLinha.push(""); // Inicializa com strings preenchidas
       
@@ -151,11 +163,21 @@ function doPost(e) {
       
       // Fallback
       if(colId === -1 || colEmp === -1){
-         novaLinha = [empresa, usuario, whatsapp, spreadsheetUrl, scriptUrl, spreadsheetId, linkMagico, "Ativo", planoPayload, ativacaoPayload, expiracaoPayload, "Registro via Login"];
+         novaLinha = [empresa, usuario, whatsapp, spreadsheetUrl, scriptUrl, spreadsheetId, linkMagico, "Ativo", planoPayload, ativacaoPayload, expiracaoPayload, "Registro auto"];
       }
       
-      // Finalmente escreve! AppendRow garantido
-      sheet.appendRow(novaLinha);
+      // Procura a primeira linha realmente vazia na Coluna A (Empresa) e E (ScriptURL)
+      var inseriu = false;
+      for (var k = 1; k < dados.length; k++) {
+         if (!dados[k][0] && (!colScript || colScript === -1 || !dados[k][colScript])) {
+            sheet.getRange(k + 1, 1, 1, novaLinha.length).setValues([novaLinha]);
+            inseriu = true;
+            break;
+         }
+      }
+      if (!inseriu) {
+         sheet.appendRow(novaLinha);
+      }
     }
     
     return ContentService.createTextOutput(JSON.stringify({status: "sucesso"})).setMimeType(ContentService.MimeType.JSON);
