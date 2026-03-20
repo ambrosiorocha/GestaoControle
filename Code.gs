@@ -797,6 +797,10 @@ function atualizarCredenciais(dados) {
       msgFinal += ' (Aviso: Falha ao sincronizar com a Mestra: ' + responseMestra.msg + ')';
     }
     return { status: 'sucesso', mensagem: msgFinal };
+  } catch(e) {
+    console.error('Falha ao notificar a Mestra: ' + e.message);
+    return { status: 'sucesso', mensagem: 'As configurações de conta foram atualizadas.' };
+  }
 }
 function obterOperadores() {
   var sheet = obterConfiguracoes();
