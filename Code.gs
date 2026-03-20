@@ -1000,6 +1000,7 @@ function notificarMestra(payload) {
 // conceder a permissão de URL Fetch (OAuth scope: external requests)
 function testarConexaoMestra() {
   notificarMestra({
+    action:         'registro',
     nome:           'EMPRESA TESTE',
     usuario:        'Teste Manual',
     whatsapp:       '11999999999',
