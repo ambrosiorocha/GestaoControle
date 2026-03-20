@@ -568,11 +568,13 @@ window.salvarConfiguracoesConta = function () {
 
     fetch(window.SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
             action: 'atualizarCredenciais',
-            usuario: usuario,
-            senha: senha || '' // Vazio = não alterar
+            data: {
+                usuario: usuario,
+                senha: senha || '' // Vazio = não alterar
+            }
         })
     })
         .then(r => r.json())

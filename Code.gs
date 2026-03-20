@@ -15,10 +15,28 @@ function include(filename) {
 
 function doPost(e) {
   try {
-    var requestData = JSON.parse(e.postData.contents);
-    var action = requestData.action;
-    var data = requestData.data;
+    var contents = e.postData ? e.postData.contents : '';
+    if (!contents) return ContentService.createTextOutput(JSON.stringify({ status: 'erro', mensagem: 'Payload vazio' })).setMimeType(ContentService.MimeType.JSON);
+    
+    var requestData;
+    try {
+      requestData = JSON.parse(contents);
+    } catch (parseErr) {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'erro', mensagem: 'Erro ao processar JSON: ' + parseErr.message })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // Normalização: aceita 'action' ou 'acao'
+    var action = requestData.action || requestData.acao;
+    var data = requestData.data || requestData; // Se não houver 'data', tenta ler da raiz
     var result;
+
+    if (!action) return ContentService.createTextOutput(JSON.stringify({ status: 'erro', mensagem: 'Ação (action) não informada' })).setMimeType(ContentService.MimeType.JSON);
+    
+    // Suporte específico para campos sugeridos pelo usuário no atualizarCredenciais
+    if (action === 'atualizarCredenciais') {
+      if (!data.usuario && requestData.novoUsuario) data.usuario = requestData.novoUsuario;
+      if (data.senha === undefined && requestData.novaSenha !== undefined) data.senha = requestData.novaSenha;
+    }
 
     var isWriteAction = action.startsWith('salvar') || action.startsWith('excluir') || action.startsWith('lancar') || action.startsWith('finalizar') || action.startsWith('estornar') || action.startsWith('baixar') || action === 'arquivarVendasAntigas';
     var lock = null;
