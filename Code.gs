@@ -791,12 +791,12 @@ function atualizarCredenciais(dados) {
       scriptUrl: sUrl,
       usuario: novoUsuario
     };
-    notificarMestra(payloadMestra);
-  } catch(e) {
-    console.error('Falha ao notificar a Mestra: ' + e.message);
-  }
-
-  return { status: 'sucesso', mensagem: 'As configurações de conta foram atualizadas.' };
+    var responseMestra = notificarMestra(payloadMestra);
+    var msgFinal = 'As configurações de conta foram atualizadas.';
+    if (responseMestra && responseMestra.status === 'erro') {
+      msgFinal += ' (Aviso: Falha ao sincronizar com a Mestra: ' + responseMestra.msg + ')';
+    }
+    return { status: 'sucesso', mensagem: msgFinal };
 }
 function obterOperadores() {
   var sheet = obterConfiguracoes();
@@ -982,10 +982,13 @@ function notificarMestra(payload) {
 
   try {
     var response = UrlFetchApp.fetch(MASTER_URL, options);
-    console.log('[notificarMestra] Status: ' + response.getResponseCode());
-    console.log('[notificarMestra] Resposta: ' + response.getContentText());
+    var resText = response.getContentText();
+    var resJson = JSON.parse(resText);
+    console.log('[notificarMestra] Status: ' + response.getResponseCode() + ' Resp: ' + resText);
+    return resJson;
   } catch(e) {
     console.error('[notificarMestra] FALHA: ' + e.message);
+    return { status: 'erro', msg: e.message };
   }
 }
 

@@ -90,7 +90,10 @@ function doPost(e) {
 
     var rowToUpdate = -1;
     for (var i = 1; i < dados.length; i++) {
-        var idMatch = (colId > -1 && dados[i][colId] === spreadsheetId);
+        var idMatch = false;
+        if (colId > -1 && spreadsheetId && String(dados[i][colId]).trim() === String(spreadsheetId).trim()) {
+            idMatch = true;
+        }
         
         var scriptMatch = false;
         if (colScript > -1 && scriptUrl) {
@@ -108,6 +111,19 @@ function doPost(e) {
             rowToUpdate = i + 1;
             break;
         }
+    }
+
+    // --- NOVO BLOCO: Tratamento de Atualização de Credencial ---
+    if (action === "atualizarCredencialMestra") {
+      if (rowToUpdate > -1) {
+        if (colUser > -1 && usuario) {
+          sheet.getRange(rowToUpdate, colUser + 1).setValue(usuario);
+          return ContentService.createTextOutput(JSON.stringify({status: "sucesso", msg: "Usuário atualizado na Mestra"})).setMimeType(ContentService.MimeType.JSON);
+        }
+        return ContentService.createTextOutput(JSON.stringify({status: "erro", msg: "Coluna de usuário não encontrada ou usuário vazio"})).setMimeType(ContentService.MimeType.JSON);
+      } else {
+        return ContentService.createTextOutput(JSON.stringify({status: "erro", msg: "Cliente não localizado na Mestra para atualizar credencial"})).setMimeType(ContentService.MimeType.JSON);
+      }
     }
     
     // Gerar Link Mágico
