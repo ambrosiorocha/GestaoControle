@@ -204,35 +204,48 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
             </div>
-        <!-- Modal Configurações de Conta -->
-        <div id="modalConta" class="fixed inset-0 bg-slate-900/60 z-[1200] hidden items-center justify-center p-4">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col">
-                <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-slate-50">
-                    <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
-                        ⚙️ Configurações da Conta
-                    </h3>
-                    <button onclick="fecharModalConta()" class="text-gray-400 hover:text-red-500 transition-colors">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    `;
+    document.body.insertAdjacentHTML('afterbegin', sidebar);
+
+    // ── Modal Configurações de Conta (Independente para evitar clipping) ───
+    const modalContaHtml = `
+        <div id="modalConta" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:99999; align-items:center; justify-content:center; padding:1rem; backdrop-filter:blur(4px);">
+            <div style="background:white; border-radius:1rem; shadow:0 25px 50px -12px rgba(0,0,0,0.5); width:100%; max-width:380px; overflow:hidden; animation: fadeInUp 0.3s ease;">
+                <div style="padding:1.25rem; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
+                    <h3 style="margin:0; font-weight:700; color:#1e293b; font-size:1.1rem; display:flex; align-items:center; gap:8px;">⚙️ Configurações da Conta</h3>
+                    <button onclick="fecharModalConta()" style="background:none; border:none; color:#94a3b8; cursor:pointer;">
+                        <svg style="width:24px; height:24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
-                <div class="p-5">
-                    <div id="contaError" style="display:none;background:#fee2e2;color:#991b1b;border-radius:0.5rem;padding:0.6rem;font-size:0.82rem;margin-bottom:1rem;"></div>
-                    <div class="form-group mb-4">
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Novo Nome de Usuário</label>
-                        <input type="text" id="novoUsuarioConta" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Ex: admin">
+                <div style="padding:1.5rem;">
+                    <div id="contaError" style="display:none; background:#fef2f2; color:#b91c1c; border-radius:0.5rem; padding:0.75rem; font-size:0.85rem; margin-bottom:1.25rem; border:1px solid #fecaca;"></div>
+                    
+                    <div style="margin-bottom:1.25rem;">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:0.4rem;">Novo Nome de Usuário</label>
+                        <input type="text" id="novoUsuarioConta" style="width:100%; padding:0.65rem; border:1.5px solid #e2e8f0; border-radius:0.5rem; outline:none; font-size:0.95rem;" placeholder="Ex: admin">
                     </div>
-                    <div class="form-group mb-4">
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nova Senha</label>
-                        <input type="password" id="novaSenhaConta" class="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Deixe em branco para não alterar">
+                    
+                    <div style="margin-bottom:1.5rem;">
+                        <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:0.4rem;">Nova Senha</label>
+                        <input type="password" id="novaSenhaConta" style="width:100%; padding:0.65rem; border:1.5px solid #e2e8f0; border-radius:0.5rem; outline:none; font-size:0.95rem;" placeholder="Deixe em branco para manter">
                     </div>
-                    <button id="btnSalvarConta" onclick="salvarConfiguracoesConta()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg transition-colors flex justify-center items-center gap-2">
+                    
+                    <button id="btnSalvarConta" onclick="salvarConfiguracoesConta()" style="width:100%; padding:0.75rem; background:#2563eb; color:white; border:none; border-radius:0.5rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
                         ✅ Salvar Alterações
                     </button>
                 </div>
             </div>
         </div>
     `;
-    document.body.insertAdjacentHTML('afterbegin', sidebar);
+    document.body.insertAdjacentHTML('beforeend', modalContaHtml);
+
+    // Evento de fechamento ao clicar fora do modal
+    const mConta = document.getElementById('modalConta');
+    if (mConta) {
+        mConta.addEventListener('click', (e) => {
+            if (e.target.id === 'modalConta') fecharModalConta();
+        });
+    }
 
     // ── Custom Modal HTML ──────────────────────────────────────
     const customModalHtml = `
@@ -500,16 +513,41 @@ window.switchHelpTab = function (tabName) {
 
 // ── Funções Globais Configurações de Conta ────────────────
 window.abrirModalConta = function () {
-    document.getElementById('novoUsuarioConta').value = Auth.getUser() || '';
-    document.getElementById('novaSenhaConta').value = '';
-    document.getElementById('contaError').style.display = 'none';
-    const m = document.getElementById('modalConta');
-    if (m) { m.classList.remove('hidden'); m.classList.add('flex'); }
+    console.log('[DEBUG] abrirModalConta disparado');
+    try {
+        const m = document.getElementById('modalConta');
+        if (m) {
+            m.style.display = 'flex';
+        } else {
+            console.error('[DEBUG] Elemento modalConta não encontrado no DOM!');
+        }
+
+        const inputUser = document.getElementById('novoUsuarioConta');
+        if (inputUser) {
+            inputUser.value = (typeof Auth !== 'undefined' && Auth.getUser) ? (Auth.getUser() || '') : '';
+        }
+
+        const inputSenha = document.getElementById('novaSenhaConta');
+        if (inputSenha) {
+            inputSenha.value = '';
+        }
+
+        const errBox = document.getElementById('contaError');
+        if (errBox) {
+            errBox.style.display = 'none';
+        }
+    } catch (e) {
+        console.error('Erro ao abrir o modal de conta:', e);
+        alert('Ocorreu um erro ao abrir as configurações.');
+    }
 };
 
 window.fecharModalConta = function () {
+    console.log('[DEBUG] fecharModalConta disparado');
     const m = document.getElementById('modalConta');
-    if (m) { m.classList.remove('flex'); m.classList.add('hidden'); }
+    if (m) {
+        m.style.display = 'none';
+    }
 };
 
 window.salvarConfiguracoesConta = function () {
