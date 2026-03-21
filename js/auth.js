@@ -447,7 +447,11 @@ window.Auth = (function () {
             _revealBody();
             if (callback) callback();
         } else {
-            showModal(callback);
+            if (window.IS_SETUP) {
+                showFirstAccessModal();
+            } else {
+                showModal(callback);
+            }
             _revealBody();
         }
     }
