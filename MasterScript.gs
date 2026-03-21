@@ -31,6 +31,9 @@ function doPost(e) {
       case 'primeiroAcesso':
         return handlePrimeiroAcesso(data);
       
+      case 'verificarPrimeiroAcesso':
+        return handleVerificarPrimeiroAcesso(data);
+      
       case 'atualizarCredenciais':
         return handleAtualizarCredenciais(data);
       
@@ -43,6 +46,36 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/**
+ * AÇÃO: verificarPrimeiroAcesso
+ * Verifica se o cliente já está cadastrado na Mestra.
+ */
+function handleVerificarPrimeiroAcesso(data) {
+  var spreadsheetId = data.spreadsheetId;
+  if (!spreadsheetId) return responseJson({ primeiroAcesso: false });
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Clientes");
+  
+  // Se a aba não existe, certamente ninguém se cadastrou ainda
+  if (!sheet) return responseJson({ primeiroAcesso: true });
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var colId = headers.indexOf("Spreadsheet ID");
+  var row = findRowById(sheet, colId, spreadsheetId);
+
+  // Se row === -1 significa que este ID não está na lista da Mestra
+  return responseJson({ primeiroAcesso: (row === -1) });
+}
+
+/**
+ * Helper para retornar JSON puro (sem o wrapper de status sucesso/erro se necessário)
+ */
+function responseJson(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 /**
