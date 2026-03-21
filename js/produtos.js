@@ -1,8 +1,8 @@
 let produtos = []; // Array global para armazenar os produtos
 
 document.addEventListener('DOMContentLoaded', function () {
-    if (SCRIPT_URL === '') {
-        exibirStatus({ status: 'error', mensagem: 'Por favor, cole a URL do Apps Script no código.' });
+    if (window.MASTER_WEBHOOK_URL === '' || window.MASTER_WEBHOOK_URL.includes('COLE_AQUI')) {
+        exibirStatus({ status: 'error', mensagem: 'Configure a window.MASTER_WEBHOOK_URL no config.js.' });
         return;
     }
     document.getElementById('produtoForm').addEventListener('submit', function (e) {
@@ -79,9 +79,9 @@ async function salvarProduto() {
     };
 
     try {
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'salvarProduto', data: produto })
+            body: JSON.stringify({ action: 'salvarProduto', spreadsheetId: window.SPREADSHEET_ID, data: produto })
         });
 
         const data = await response.json();
@@ -113,9 +113,9 @@ async function carregarProdutos(forceSync = false) {
     listaProdutos.innerHTML = '<tr><td colspan="7" class="table-cell p-4 text-center">Carregando produtos...</td></tr>';
 
     try {
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'obterProdutos' })
+            body: JSON.stringify({ action: 'listarProdutos', spreadsheetId: window.SPREADSHEET_ID })
         });
         const data = await response.json();
 
@@ -190,9 +190,9 @@ function filtrarProdutos() {
 
 async function editarProduto(id) {
     try {
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'obterProdutoPorId', data: { id: id } })
+            body: JSON.stringify({ action: 'obterProdutoPorId', spreadsheetId: window.SPREADSHEET_ID, data: { id: id } })
         });
         const data = await response.json();
 
@@ -232,9 +232,9 @@ async function editarProduto(id) {
 async function excluirProduto(id) {
     if (await CustomModal.confirm(`Tem certeza que deseja excluir o produto com ID ${id}?`, 'Excluir', 'Cancelar')) {
         try {
-            const response = await fetch(window.SCRIPT_URL, {
+            const response = await fetch(window.MASTER_WEBHOOK_URL, {
                 method: 'POST',
-                body: JSON.stringify({ action: 'excluirProduto', data: { id: id } })
+                body: JSON.stringify({ action: 'excluirProduto', spreadsheetId: window.SPREADSHEET_ID, data: { id: id } })
             });
             const data = await response.json();
             exibirStatus(data);

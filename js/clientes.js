@@ -1,8 +1,8 @@
 let clientes = [];
 
 document.addEventListener('DOMContentLoaded', function () {
-    if (SCRIPT_URL === '') {
-        exibirStatus({ status: 'error', mensagem: 'Por favor, cole a URL do Apps Script no código.' });
+    if (window.MASTER_WEBHOOK_URL === '' || window.MASTER_WEBHOOK_URL.includes('COLE_AQUI')) {
+        exibirStatus({ status: 'error', mensagem: 'Configure a window.MASTER_WEBHOOK_URL no config.js.' });
         return;
     }
     document.getElementById('clienteForm').addEventListener('submit', function (e) {
@@ -47,9 +47,9 @@ async function salvarCliente() {
     };
 
     try {
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'salvarCliente', data: cliente })
+            body: JSON.stringify({ action: 'salvarCliente', spreadsheetId: window.SPREADSHEET_ID, data: cliente })
         });
 
         const data = await response.json();
@@ -80,9 +80,9 @@ async function carregarClientes(forceSync = false) {
     listaClientes.innerHTML = '<tr><td colspan="7" class="table-cell p-4 text-center">Carregando clientes...</td></tr>';
 
     try {
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'obterClientes' })
+            body: JSON.stringify({ action: 'listarClientes', spreadsheetId: window.SPREADSHEET_ID })
         });
         const data = await response.json();
 
@@ -164,9 +164,9 @@ function editarCliente(id) {
 async function excluirCliente(id) {
     if (await CustomModal.confirm(`Tem certeza que deseja excluir o cliente com ID ${id}?`, 'Excluir', 'Cancelar')) {
         try {
-            const response = await fetch(window.SCRIPT_URL, {
+            const response = await fetch(window.MASTER_WEBHOOK_URL, {
                 method: 'POST',
-                body: JSON.stringify({ action: 'excluirCliente', data: { id: id } })
+                body: JSON.stringify({ action: 'excluirCliente', spreadsheetId: window.SPREADSHEET_ID, data: { id: id } })
             });
             const data = await response.json();
             exibirStatus(data);

@@ -26,9 +26,9 @@ async function carregarDadosDashboard() {
         const umAnoAtras = new Date(hoje.setFullYear(hoje.getFullYear() - 1));
         const dataInicioStr = umAnoAtras.toISOString().split('T')[0];
 
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'obterVendas', data: { dataInicio: dataInicioStr } })
+            body: JSON.stringify({ action: 'obterDashboard', spreadsheetId: window.SPREADSHEET_ID })
         });
         const data = await response.json();
 

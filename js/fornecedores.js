@@ -1,8 +1,8 @@
 let fornecedores = [];
 
 document.addEventListener('DOMContentLoaded', function () {
-    if (SCRIPT_URL === '') {
-        exibirStatus({ status: 'error', mensagem: 'Por favor, cole a URL do Apps Script no código.' });
+    if (window.MASTER_WEBHOOK_URL === '' || window.MASTER_WEBHOOK_URL.includes('COLE_AQUI')) {
+        exibirStatus({ status: 'error', mensagem: 'Configure a window.MASTER_WEBHOOK_URL no config.js.' });
         return;
     }
     document.getElementById('fornecedorForm').addEventListener('submit', function (e) {
@@ -40,9 +40,9 @@ async function salvarFornecedor() {
     };
 
     try {
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'salvarFornecedor', data: fornecedor })
+            body: JSON.stringify({ action: 'salvarFornecedor', spreadsheetId: window.SPREADSHEET_ID, data: fornecedor })
         });
 
         const data = await response.json();
@@ -63,9 +63,9 @@ async function carregarFornecedores() {
     listaFornecedores.innerHTML = '<tr><td colspan="7" class="table-cell p-4 text-center">Carregando fornecedores...</td></tr>';
 
     try {
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'obterFornecedores' })
+            body: JSON.stringify({ action: 'listarFornecedores', spreadsheetId: window.SPREADSHEET_ID })
         });
         const data = await response.json();
 
@@ -138,9 +138,9 @@ function editarFornecedor(id) {
 async function excluirFornecedor(id) {
     if (await CustomModal.confirm(`Tem certeza que deseja excluir o fornecedor com ID ${id}?`, 'Excluir', 'Cancelar')) {
         try {
-            const response = await fetch(window.SCRIPT_URL, {
+            const response = await fetch(window.MASTER_WEBHOOK_URL, {
                 method: 'POST',
-                body: JSON.stringify({ action: 'excluirFornecedor', data: { id: id } })
+                body: JSON.stringify({ action: 'excluirFornecedor', spreadsheetId: window.SPREADSHEET_ID, data: { id: id } })
             });
             const data = await response.json();
             exibirStatus(data);

@@ -566,14 +566,13 @@ window.salvarConfiguracoesConta = function () {
     btn.innerHTML = '⏳ Salvando...';
     btn.disabled = true;
 
-    fetch(window.SCRIPT_URL, {
+    fetch(window.MASTER_WEBHOOK_URL, {
         method: 'POST',
         body: JSON.stringify({
-            action: 'atualizarCredenciais',
-            data: {
-                usuario: usuario,
-                senha: senha || '' // Vazio = não alterar
-            }
+            acao: 'atualizarCredenciais',
+            spreadsheetId: window.SPREADSHEET_ID,
+            novoUsuario: usuario,
+            novaSenha: senha || '' // Vazio = não alterar
         })
     })
         .then(r => r.json())

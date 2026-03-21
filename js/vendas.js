@@ -10,8 +10,8 @@ let vendaEditandoId = null; // ID da venda Pendente em edição
 // INICIALIZAÇÃO
 // ================================
 document.addEventListener('DOMContentLoaded', function () {
-    if (SCRIPT_URL === '') {
-        exibirStatus({ status: 'error', mensagem: 'Configure a window.SCRIPT_URL no config.js.' });
+    if (window.MASTER_WEBHOOK_URL === '' || window.MASTER_WEBHOOK_URL.includes('COLE_AQUI')) {
+        exibirStatus({ status: 'error', mensagem: 'Configure a window.MASTER_WEBHOOK_URL no config.js.' });
         return;
     }
     carregarProdutos();
@@ -97,7 +97,7 @@ async function carregarProdutos() {
     }
 
     try {
-        const res = await fetch(window.SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'obterProdutos' }) });
+        const res = await fetch(window.MASTER_WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ action: 'listarProdutos', spreadsheetId: window.SPREADSHEET_ID }) });
         const data = await res.json();
         produtos = parseCompactData(data.dados) || [];
         CacheAPI.set('cache_produtos', produtos);
@@ -122,7 +122,10 @@ function preencherSelectProdutos(sel, lista) {
 async function carregarOperadores() {
     const sel = document.getElementById('usuario');
     try {
-        const res = await fetch(window.SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'obterOperadores' }) });
+        const res = await fetch(window.MASTER_WEBHOOK_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'obterOperadores', spreadsheetId: window.SPREADSHEET_ID })
+        });
         const data = await res.json();
         if (data.status === 'sucesso' && Array.isArray(data.dados) && data.dados.length > 0) {
             sel.innerHTML = '';
@@ -158,7 +161,10 @@ async function carregarClientes() {
     }
 
     try {
-        const res = await fetch(window.SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'obterClientes' }) });
+        const res = await fetch(window.MASTER_WEBHOOK_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'obterClientes', spreadsheetId: window.SPREADSHEET_ID })
+        });
         const data = await res.json();
         if (data.status === 'sucesso' && data.dados) {
             const arr = parseCompactData(data.dados);
@@ -346,7 +352,7 @@ async function salvarRascunho() {
         if (vendaEditandoId) payload.id = vendaEditandoId;
 
         try {
-            const res = await fetch(window.SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: action, data: payload }) });
+            const res = await fetch(window.MASTER_WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ action: action, data: payload, spreadsheetId: window.SPREADSHEET_ID }) });
             const data = await res.json();
             exibirStatus(data);
             if (data.status === 'sucesso') {
@@ -509,7 +515,7 @@ async function confirmarVenda() {
         if (vendaEditandoId) payload.id = vendaEditandoId;
 
         try {
-            const res = await fetch(window.SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action, data: payload }) });
+            const res = await fetch(window.MASTER_WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ action, data: payload, spreadsheetId: window.SPREADSHEET_ID }) });
             const data = await res.json();
             fecharModal();
             exibirStatus(data);
@@ -548,10 +554,10 @@ async function carregarHistoricoVendas(filtros = null, msgCarregando = 'Carregan
     const tbody = document.getElementById('listaHistorico');
     tbody.innerHTML = `<tr><td colspan="10" class="td-empty">${msgCarregando}</td></tr>`;
     try {
-        const payload = { action: 'obterVendas' };
-        if (filtros) payload.data = filtros;
+        const payload = { action: 'obterVendas', spreadsheetId: window.SPREADSHEET_ID };
+        if (filtros) Object.assign(payload, filtros);
 
-        const res = await fetch(window.SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const res = await fetch(window.MASTER_WEBHOOK_URL, { method: 'POST', body: JSON.stringify(payload) });
         const text = await res.text();
         const data = JSON.parse(text);
 
@@ -741,7 +747,10 @@ function abrirModalFinalizarPendente(id, itensJSONEncoded) {
 async function confirmarEstorno(id) {
     if (!(await CustomModal.confirm(`⚠️ Estornar a Venda #${id}?\n\nEsta ação irá:\n• Devolver os itens ao estoque\n• Cancelar o lançamento financeiro\n• Marcar a venda como Estornada\n\nEsta operação não pode ser desfeita.`, 'Estornar', 'Cancelar'))) return;
     try {
-        const res = await fetch(window.SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'estornarVenda', data: { id } }) });
+        const res = await fetch(window.MASTER_WEBHOOK_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'estornarVenda', data: { id }, spreadsheetId: window.SPREADSHEET_ID })
+        });
         const data = await res.json();
         exibirStatus(data);
         if (data.status === 'sucesso') {

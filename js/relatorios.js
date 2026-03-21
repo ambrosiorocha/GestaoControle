@@ -82,9 +82,9 @@ function exibirStatus(resposta) {
 // ── Carregar Dados ──────────────────────────────────────────────
 async function carregarRelatorios() {
     try {
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'obterVendas' })
+            body: JSON.stringify({ action: 'obterDadosRelatorios', spreadsheetId: window.SPREADSHEET_ID })
         });
         const data = await response.json();
 

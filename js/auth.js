@@ -1,6 +1,6 @@
 // ============================================================
 // AUTH.JS — Autenticação, Primeiro Acesso e Controle de Acesso
-// Depende de: config.js (window.SCRIPT_URL)
+// Depende de: config.js (window.MASTER_WEBHOOK_URL)
 // ============================================================
 
 window.Auth = (function () {
@@ -119,9 +119,9 @@ window.Auth = (function () {
             <path opacity=".75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>Verificando...`;
         errEl.style.display = 'none';
 
-        fetch(window.SCRIPT_URL, {
+        fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'autenticarOperador', data: { nome, senha } })
+            body: JSON.stringify({ acao: 'autenticarOperador', spreadsheetId: window.SPREADSHEET_ID, nome, senha })
         })
             .then(r => r.text()).then(txt => {
                 try { return JSON.parse(txt); }
@@ -136,9 +136,9 @@ window.Auth = (function () {
                     updateBadge();
 
                     // Dispara o auto-registro na mestra em background
-                    fetch(window.SCRIPT_URL, {
+                    fetch(window.MASTER_WEBHOOK_URL, {
                         method: 'POST',
-                        body: JSON.stringify({ action: 'registrarMestra', data: { nome: data.nome, empresa: data.empresa, whatsapp: "Ler de Configurações" } })
+                        body: JSON.stringify({ acao: 'registrarMestra', spreadsheetId: window.SPREADSHEET_ID, nome: data.nome, empresa: data.empresa, whatsapp: "Ler de Configurações" })
                     }).catch(() => console.log('Registro background pendente.'));
 
                 } else {
@@ -158,10 +158,10 @@ window.Auth = (function () {
 
     // ── Verificar se é o primeiro acesso (sem admins cadastrados) ──
     function _verificarPrimeiroAcesso(callback) {
-        if (!window.SCRIPT_URL) { callback(false); return; }
-        fetch(window.SCRIPT_URL, {
+        if (!window.MASTER_WEBHOOK_URL) { callback(false); return; }
+        fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'verificarPrimeiroAcesso' })
+            body: JSON.stringify({ acao: 'verificarPrimeiroAcesso', spreadsheetId: window.SPREADSHEET_ID })
         })
             .then(r => r.text()).then(txt => {
                 try { return JSON.parse(txt); }
@@ -196,32 +196,20 @@ window.Auth = (function () {
         const exp = new Date(); exp.setDate(exp.getDate() + 30);
         const fmt = d => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 
-        const sharedMeta = {
-            nome: nomeCompleto,
-            empresa: empresa,
-            whatsapp: telefone,
-            scriptUrl: window.SCRIPT_URL || '',
-            registro: now.toLocaleString('pt-BR'),
-            plano: 'Básico',
-            ativacao: fmt(now),
-            expiracao: fmt(exp)
-        };
-
-        // ── 1. Disparo Principal → SCRIPT_URL do cliente ───────
-        fetch(window.SCRIPT_URL, {
+        // ── 1. Disparo Principal → Mestra (Gateway) ───────
+        fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
             body: JSON.stringify({
-                action: 'primeiroAcesso',
-                data: {
-                    nomeCompleto,
-                    empresa,
-                    whatsapp: telefone,
-                    login,
-                    senha,
-                    registro: sharedMeta.registro,
-                    ativacao: sharedMeta.ativacao,
-                    expiracao: sharedMeta.expiracao
-                }
+                acao: 'primeiroAcesso',
+                spreadsheetId: window.SPREADSHEET_ID,
+                nomeCompleto,
+                nome: empresa, // Mestra espera 'nome' para empresa
+                whatsapp: telefone,
+                login,
+                senha,
+                registro: now.toLocaleString('pt-BR'),
+                ativacao: fmt(now),
+                expiracao: fmt(exp)
             })
         })
             .then(r => r.text())

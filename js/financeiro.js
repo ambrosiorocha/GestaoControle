@@ -1,8 +1,8 @@
 let registrosFinanceiros = [];
 
 document.addEventListener('DOMContentLoaded', function () {
-    if (SCRIPT_URL === '') {
-        exibirStatus({ status: 'error', mensagem: 'Configure a window.SCRIPT_URL no config.js.' });
+    if (window.MASTER_WEBHOOK_URL === '' || window.MASTER_WEBHOOK_URL.includes('COLE_AQUI')) {
+        exibirStatus({ status: 'error', mensagem: 'Configure a window.MASTER_WEBHOOK_URL no config.js.' });
         return;
     }
     const caixaSelect = document.getElementById('caixa');
@@ -149,9 +149,9 @@ async function salvarFinanceiro() {
         caixa: document.getElementById('caixa').value
     };
     try {
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'salvarFinanceiro', data: registro })
+            body: JSON.stringify({ action: 'salvarFinanceiro', spreadsheetId: window.SPREADSHEET_ID, data: registro })
         });
         const data = await response.json();
         exibirStatus(data);
@@ -178,9 +178,9 @@ async function carregarFinanceiro() {
     const listaFinanceiro = document.getElementById('listaFinanceiro');
     listaFinanceiro.innerHTML = '<tr><td colspan="8" class="table-cell p-4 text-center">Carregando...</td></tr>';
     try {
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'obterFinanceiro' })
+            body: JSON.stringify({ action: 'listarLancamentos', spreadsheetId: window.SPREADSHEET_ID })
         });
         const data = await response.json();
         if (data.status === 'sucesso' && data.dados) {
@@ -348,9 +348,9 @@ async function baixarLancamento(id, tipo) {
 
     if (!(await CustomModal.confirm(msg, 'Confirmar', 'Cancelar'))) return;
     try {
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'baixarLancamento', data: { id: id } })
+            body: JSON.stringify({ action: 'baixarLancamento', spreadsheetId: window.SPREADSHEET_ID, data: { id: id } })
         });
         const data = await response.json();
         exibirStatus(data);
@@ -378,9 +378,9 @@ async function estornarLancamentoManual(id) {
     };
 
     try {
-        const response = await fetch(window.SCRIPT_URL, {
+        const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'salvarFinanceiro', data: registroCancelado })
+            body: JSON.stringify({ action: 'salvarFinanceiro', spreadsheetId: window.SPREADSHEET_ID, data: registroCancelado })
         });
         const data = await response.json();
         exibirStatus(data);
@@ -431,9 +431,9 @@ function editarFinanceiro(id) {
 async function excluirFinanceiro(id) {
     if (await CustomModal.confirm(`Excluir registro ID ${id}?`, 'Excluir', 'Cancelar')) {
         try {
-            const response = await fetch(window.SCRIPT_URL, {
+            const response = await fetch(window.MASTER_WEBHOOK_URL, {
                 method: 'POST',
-                body: JSON.stringify({ action: 'excluirFinanceiro', data: { id: id } })
+                body: JSON.stringify({ action: 'excluirFinanceiro', spreadsheetId: window.SPREADSHEET_ID, data: { id: id } })
             });
             const data = await response.json();
             exibirStatus(data);
