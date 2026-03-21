@@ -441,17 +441,20 @@ window.Auth = (function () {
 
     // ── Ponto de entrada ──────────────────────────────────────────
     function init(callback) {
+        // Forçar tela de Primeiro Acesso se o parâmetro setup=true estiver na URL
+        if (window.IS_SETUP) {
+            showFirstAccessModal();
+            _revealBody();
+            return;
+        }
+
         if (isLoggedIn()) {
             applyUI();
             updateBadge();
             _revealBody();
             if (callback) callback();
         } else {
-            if (window.IS_SETUP) {
-                showFirstAccessModal();
-            } else {
-                showModal(callback);
-            }
+            showModal(callback);
             _revealBody();
         }
     }

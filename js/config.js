@@ -6,17 +6,25 @@ window.MASTER_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbw1YlcOcSpN
 (function () {
     // 2. Tentar ler parâmetros da URL: ?id=XYZ&setup=true
     const urlParams = new URLSearchParams(window.location.search);
-    const paramId = urlParams.get('id');
-    const paramSetup = urlParams.get('setup');
+    let paramId = urlParams.get('id') || "";
+    let paramSetup = urlParams.get('setup') === 'true';
+
+    // Caso o setup=true esteja "dentro" do parâmetro ID (comum em links de WhatsApp)
+    if (paramId.includes('setup=true')) {
+        paramSetup = true;
+    }
 
     if (paramId) {
         // Limpa o ID de possíveis sufixos /exec ou URLs completas
         let cleanId = paramId.trim().replace(/https:\/\/script\.google\.com\/macros\/s\/|\/exec\/?$/g, '');
-        localStorage.setItem('sv_spreadsheet_id', cleanId);
+        // Remove eventuais parâmetros de query que sobraram (ex: ID?setup=true)
+        cleanId = cleanId.split('?')[0].split('&')[0];
+
+        localStorage.setItem('sv_spreadsheet_id', cleanId.trim());
     }
 
     // 3. Captura o modo de configuração (?setup=true)
-    window.IS_SETUP = (paramSetup === 'true');
+    window.IS_SETUP = paramSetup;
 
     if (paramId || paramSetup) {
         // Remove os parâmetros da URL para manter a interface limpa
