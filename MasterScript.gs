@@ -59,15 +59,22 @@ function handleVerificarPrimeiroAcesso(data) {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName("Clientes");
   
-  // Se a aba não existe, certamente ninguém se cadastrou ainda
   if (!sheet) return responseJson({ primeiroAcesso: true });
 
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   var colId = headers.indexOf("Spreadsheet ID");
+  var colUser = headers.indexOf("Usuário Admin");
+  
   var row = findRowById(sheet, colId, spreadsheetId);
 
-  // Se row === -1 significa que este ID não está na lista da Mestra
-  return responseJson({ primeiroAcesso: (row === -1) });
+  // 1. Se não encontrou a linha, é primeiro acesso (ID Novo)
+  if (row === -1) return responseJson({ primeiroAcesso: true });
+
+  // 2. Se encontrou a linha, verifica se o usuário admin está preenchido
+  var usuarioExistente = sheet.getRange(row, colUser + 1).getValue();
+  
+  // Se estiver vazio, o cliente ainda não fez o setup inicial
+  return responseJson({ primeiroAcesso: (!usuarioExistente || usuarioExistente === "") });
 }
 
 /**
