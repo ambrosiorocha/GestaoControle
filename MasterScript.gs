@@ -167,7 +167,7 @@ function handlePrimeiroAcesso(data) {
   var id = data.spreadsheetId;
   if (!id) return responseErro("ID da Planilha não fornecido.");
 
-  // TESTE DE Abertura (Integridade do Banco)
+  // TESTE DE ABERTURA (Integridade do Banco)
   var clientSS;
   try {
     clientSS = SpreadsheetApp.openById(id);
@@ -176,6 +176,10 @@ function handlePrimeiroAcesso(data) {
   }
 
   try {
+    // 1. Forçar valores padrão para a Mestra
+    data.status = 'Ativo';
+    data.plano = data.plano || 'Básico';
+
     // A. Salvar na Planilha Mestra (Upsert + Audit Trail + Dropdowns)
     upsertMasterClient(data, "Primeiro Acesso concluído");
 
@@ -183,11 +187,16 @@ function handlePrimeiroAcesso(data) {
     var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss");
     var configSheet = clientSS.getSheetByName("Configurações") || clientSS.insertSheet("Configurações");
     
+    // Mapeamento exato solicitado para o Banco de Dados do Cliente:
     var clientConfigsMap = {
       "Empresa": data.nome || "",
+      "Nome": data.nomeCompleto || "",
       "Usuario": data.usuario || "",
       "Senha": data.senha || "",
-      "Plano": data.plano || "Básico",
+      "Nível": "Admin",
+      "Permissões": "{}",
+      "Telefone": data.whatsapp || "",
+      "Plano": data.plano,
       "Status": "Ativo",
       "UltimoAcesso": timestamp
     };
