@@ -62,15 +62,40 @@ function handleAutenticarOperador(data) {
 
   if (!id) return responseErro("ID da planilha não fornecido.");
 
+  // 1. TRAVA DE SEGURANÇA: Verificar status na Mestra antes de qualquer coisa
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var masterSheet = ss.getSheetByName("Clientes");
+    if (masterSheet) {
+      var mHeaders = masterSheet.getRange(1, 1, 1, masterSheet.getLastColumn()).getValues()[0];
+      var mColId = mHeaders.indexOf("Spreadsheet ID");
+      var mColStatus = mHeaders.indexOf("Status");
+      var mRow = findRowById(masterSheet, mColId, id);
+      
+      if (mRow > -1 && mColStatus > -1) {
+        var status = masterSheet.getRange(mRow, mColStatus + 1).getValue();
+        if (String(status).toLowerCase() === 'inativo') {
+          return responseErro('Acesso bloqueado. Seu sistema está inativo. Por favor, fale com o gestor.');
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Erro ao verificar trava de segurança: " + e.message);
+  }
+
+  // 2. Prosseguir com a autenticação na planilha do cliente
   try {
     var clientSS = SpreadsheetApp.openById(id);
     var configSheet = clientSS.getSheetByName("Configurações");
     if (!configSheet) return responseErro("Planilha do cliente não configurada corretamente.");
 
-    var values = configSheet.getDataRange().getValues();
+    // Layout Horizontal: Cabeçalhos na Linha 1, Dados na Linha 2
+    var headers = configSheet.getRange(1, 1, 1, configSheet.getLastColumn()).getValues()[0];
+    var dataRow = configSheet.getRange(2, 1, 1, configSheet.getLastColumn()).getValues()[0];
+    
     var configs = {};
-    for (var i = 1; i < values.length; i++) {
-      configs[values[i][0]] = values[i][1];
+    for (var i = 0; i < headers.length; i++) {
+        configs[headers[i]] = dataRow[i];
     }
 
     if (configs["Usuario"] === user && String(configs["Senha"]) === String(pass)) {
@@ -138,16 +163,6 @@ function responseJson(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/**
- * AÇÃO: primeiroAcesso
- * Tenta abrir o cliente PRIMEIRO. Se falhar, aborta.
- * Se ok, salva na Mestra e na planilha do cliente (aba 'Configurações').
- */
-/**
- * AÇÃO: primeiroAcesso
- * Tenta abrir o cliente PRIMEIRO. Se falhar, aborta.
- * Se ok, salva na Mestra e na planilha do cliente (aba 'Configurações').
- */
 function handlePrimeiroAcesso(data) {
   var id = data.spreadsheetId;
   if (!id) return responseErro("ID da Planilha não fornecido.");
@@ -161,27 +176,23 @@ function handlePrimeiroAcesso(data) {
   }
 
   try {
-    // A. Salvar na Planilha Mestra (Upsert + Audit Trail)
+    // A. Salvar na Planilha Mestra (Upsert + Audit Trail + Dropdowns)
     upsertMasterClient(data, "Primeiro Acesso concluído");
 
-    // B. Salvar na Planilha do Cliente (aba 'Configurações')
+    // B. Salvar na Planilha do Cliente (aba 'Configurações' - LAYOUT HORIZONTAL)
     var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss");
-    var configSheet = clientSS.getSheetByName("Configurações");
-    if (!configSheet) {
-      configSheet = clientSS.insertSheet("Configurações");
-      configSheet.getRange("A1:B1").setValues([["Chave", "Valor"]]).setFontWeight("bold");
-    }
+    var configSheet = clientSS.getSheetByName("Configurações") || clientSS.insertSheet("Configurações");
     
-    var clientConfigs = [
-      ["Empresa", data.nome || ""],
-      ["Usuario", data.usuario || ""],
-      ["Senha", data.senha || ""],
-      ["Plano", data.plano || "Básico"],
-      ["Status", "Ativo"],
-      ["UltimoAcesso", timestamp]
-    ];
+    var clientConfigsMap = {
+      "Empresa": data.nome || "",
+      "Usuario": data.usuario || "",
+      "Senha": data.senha || "",
+      "Plano": data.plano || "Básico",
+      "Status": "Ativo",
+      "UltimoAcesso": timestamp
+    };
     
-    updateKeyValueSheet(configSheet, clientConfigs);
+    updateHorizontalConfig(configSheet, clientConfigsMap);
     return responseSucesso("Primeiro acesso registrado com sucesso.");
     
   } catch (err) {
@@ -206,15 +217,15 @@ function handleAtualizarCredenciais(data) {
   }
 
   try {
-    // A. Atualizar na Planilha do Cliente (aba 'Configurações')
+    // A. Atualizar na Planilha do Cliente (aba 'Configurações' - LAYOUT HORIZONTAL)
     var configSheet = clientSS.getSheetByName("Configurações");
     if (!configSheet) return responseErro("Aba 'Configurações' não encontrada no cliente.");
     
-    var credentials = [
-      ["Usuario", data.novoUsuario || data.usuario],
-      ["Senha", data.novaSenha || data.senha]
-    ];
-    updateKeyValueSheet(configSheet, credentials);
+    var credentialsMap = {
+      "Usuario": data.novoUsuario || data.usuario,
+      "Senha": data.novaSenha || data.senha
+    };
+    updateHorizontalConfig(configSheet, credentialsMap);
     
     // B. Atualizar na Mestra (Upsert + Audit Trail)
     var logMsg = "Credenciais atualizadas: ";
@@ -266,7 +277,9 @@ function upsertMasterClient(data, actionDescription) {
     "linkAcesso": "Link de Acesso"
   };
 
+  var targetRow;
   if (rowIndex > -1) {
+    targetRow = rowIndex;
     // ── ATUALIZAÇÃO INTELIGENTE (Somente colunas presentes no data)
     for (var key in data) {
       if (mapping[key]) {
@@ -292,6 +305,20 @@ function upsertMasterClient(data, actionDescription) {
     }
     newRowData[colObsIndex] = logEntry; // Histórico inicial
     sheet.appendRow(newRowData);
+    targetRow = sheet.getLastRow();
+  }
+
+  // APLICAR DATA VALIDATION (Dropdowns)
+  var colStatusIndex = headers.indexOf("Status");
+  var colPlanoIndex = headers.indexOf("Plano");
+
+  if (colStatusIndex > -1) {
+    var ruleStatus = SpreadsheetApp.newDataValidation().requireValueInList(['Ativo', 'Inativo'], true).build();
+    sheet.getRange(targetRow, colStatusIndex + 1).setDataValidation(ruleStatus);
+  }
+  if (colPlanoIndex > -1) {
+    var rulePlano = SpreadsheetApp.newDataValidation().requireValueInList(['Básico', 'Pro', 'Premium'], true).build();
+    sheet.getRange(targetRow, colPlanoIndex + 1).setDataValidation(rulePlano);
   }
 }
 
@@ -318,25 +345,24 @@ function findRowById(sheet, colIndex, id) {
   return -1;
 }
 
-function updateKeyValueSheet(sheet, kvArray) {
-  var data = sheet.getDataRange().getValues();
-  kvArray.forEach(function(pair) {
-    var key = pair[0];
-    var val = pair[1];
-    var found = false;
-    
-    for (var i = 1; i < data.length; i++) {
-      if (data[i][0] === key) {
-        sheet.getRange(i + 1, 2).setValue(val);
-        found = true;
-        break;
-      }
+/**
+ * UTILS: SINCRONIZAÇÃO HORIZONTAL (Configurações do Cliente)
+ */
+function updateHorizontalConfig(sheet, dataMap) {
+  var lastCol = sheet.getLastColumn();
+  var headers = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+  
+  for (var key in dataMap) {
+    var colIdx = headers.indexOf(key);
+    if (colIdx === -1) {
+      // Cria a coluna se não existir
+      colIdx = headers.length;
+      headers.push(key);
+      sheet.getRange(1, colIdx + 1).setValue(key).setFontWeight("bold");
     }
-    
-    if (!found) {
-      sheet.appendRow([key, val]);
-    }
-  });
+    // Grava o valor sempre na Linha 2
+    sheet.getRange(2, colIdx + 1).setValue(dataMap[key]);
+  }
 }
 
 function responseSucesso(msg) {
