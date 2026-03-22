@@ -472,11 +472,22 @@ input[type="number"] {
     width: 100%;
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
     animation: fadeInUpWall 0.4s ease;
+    /* Adicionado para garantir alinhamento vertical */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 @keyframes fadeInUpWall {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .upgrade-wall-icon {
@@ -486,7 +497,8 @@ input[type="number"] {
     line-height: 1;
 }
 
-.upgrade-wall h2, .upgrade-wall h3 {
+.upgrade-wall h2,
+.upgrade-wall h3 {
     font-size: 1.2rem;
     font-weight: 700;
     color: #fff !important;
@@ -513,7 +525,8 @@ input[type="number"] {
     letter-spacing: 0.03em;
 }
 
-.upgrade-wall .upgrade-cta, .upgrade-wall .wa-btn {
+.upgrade-wall .upgrade-cta,
+.upgrade-wall .wa-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -529,7 +542,8 @@ input[type="number"] {
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.upgrade-wall .upgrade-cta:hover, .upgrade-wall .wa-btn:hover {
+.upgrade-wall .upgrade-cta:hover,
+.upgrade-wall .wa-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 18px rgba(22, 163, 74, 0.5);
     color: white;
