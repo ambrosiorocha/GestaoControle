@@ -45,14 +45,24 @@ function _verificarAcessoECarregar() {
     }
 
     if (isBasico) {
-        // Exibe parede de upgrade
-        const loadingEl = document.getElementById('loading');
-        if (loadingEl) loadingEl.style.display = 'none';
+        // MATA-LOADING AGRESSIVO: Força o sumiço de qualquer indicador de carregamentos
+        ['loading', 'planBadgeWrap'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.setProperty('display', 'none', 'important');
+                el.classList.add('hidden');
+            }
+        });
 
         const wall = document.getElementById('upgradeWall');
         if (wall) {
-            wall.style.display = 'flex';
+            wall.style.setProperty('display', 'flex', 'important');
         }
+
+        // Garante que o conteúdo real do relatório continue invisível
+        const content = document.getElementById('report-content');
+        if (content) content.classList.add('hidden');
+
         return;
     }
 
