@@ -40,8 +40,22 @@ function doPost(e) {
       case 'autenticarOperador':
         return handleAutenticarOperador(data);
       
-      default:
-        return responseErro("Ação desconhecida: " + acao);
+      case 'lancarVenda':
+        var resPlano = verificarPermissaoPlano(data.spreadsheetId, 'Vendas');
+        if (resPlano.status === 'erro') return responseErro(resPlano.mensagem);
+        return handleLancarVenda(data);
+
+      case 'salvarRascunho':
+        return handleSalvarRascunho(data);
+
+      case 'estornarVenda':
+        return handleEstornarVenda(data);
+      
+      case 'obterDadosRelatorios':
+        var resPlanoRel = verificarPermissaoPlano(data.spreadsheetId, 'Relatórios');
+        if (resPlanoRel.status === 'erro') return responseErro(resPlanoRel.mensagem);
+        // handleObterDadosRelatorios será implementado na migração de Relatórios
+        return responseErro("Ação 'obterDadosRelatorios' ainda não migrada para a Mestra.");
     }
     
   } catch (err) {
@@ -401,6 +415,225 @@ function responseSucesso(msg) {
 }
 
 function responseErro(msg) {
-  return ContentService.createTextOutput(JSON.stringify({ status: "erro", msg: msg }))
+  return ContentService.createTextOutput(JSON.stringify({ status: "erro", mensagem: msg }))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * SEGURANÇA: Verificar Permissão por Plano
+ */
+function verificarPermissaoPlano(spreadsheetId, recurso) {
+  if (!spreadsheetId) return { status: 'erro', mensagem: 'ID da planilha não informado.' };
+  
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Clientes");
+    if (!sheet) return { status: 'sucesso' }; // Se não tem aba, deixa passar (primeiro acesso)
+    
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var colId = headers.indexOf("Spreadsheet ID");
+    var colPlano = headers.indexOf("Plano");
+    
+    var row = findRowById(sheet, colId, spreadsheetId);
+    if (row === -1) return { status: 'erro', mensagem: 'Cliente não localizado na Mestra.' };
+    
+    var plano = sheet.getRange(row, colPlano + 1).getValue();
+    var p = String(plano).toLowerCase();
+    
+    if (p === 'básico' || p === 'basico') {
+      if (recurso === 'Relatórios') {
+        return { status: 'erro', mensagem: 'Relatórios Estratégicos não disponíveis no Plano Básico. Faça o upgrade!' };
+      }
+      // Outras restrições podem ser adicionadas aqui
+    }
+    
+    return { status: 'sucesso' };
+  } catch (e) {
+    return { status: 'erro', mensagem: 'Erro ao validar plano: ' + e.message };
+  }
+}
+
+/**
+ * MOTOR DE VENDAS (MIGRADO DO CÓDIGO LEGADO)
+ */
+
+function handleLancarVenda(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheetVendas = ss.getSheetByName('Vendas');
+    var sheetProdutos = ss.getSheetByName('Produtos');
+    var sheetFin = ss.getSheetByName('Financeiro');
+    
+    if (!sheetVendas) return responseErro("Aba 'Vendas' não encontrada no cliente.");
+
+    // 1. Baixa de estoque
+    var erroEstoque = baixarEstoqueItens(sheetProdutos, data.itensList);
+    if (erroEstoque) return responseErro(erroEstoque);
+
+    // 2. Gravar Venda
+    var novoId = proximoIdVendas(sheetVendas);
+    var vencimento = data.vencimento || data.data;
+    var statusFin = data.statusFinanceiro || 'Pendente';
+
+    sheetVendas.appendRow([
+      novoId, data.data,
+      data.cliente || 'Consumidor Interno',
+      data.itens, data.quantidadeVendida,
+      data.subtotal, data.descontoPercentual, data.descontoReal,
+      data.totalComDesconto,
+      data.formaPagamento || '',
+      data.usuario || '',
+      'Concluda',
+      vencimento,
+      JSON.stringify(data.itensList || [])
+    ]);
+
+    // 3. Financeiro
+    if (sheetFin) {
+      var lastRowFin = sheetFin.getLastRow();
+      var nextIdFin = lastRowFin > 1 ? (parseInt(sheetFin.getRange(lastRowFin, 1).getValue()) || 0) + 1 : 1;
+      sheetFin.appendRow([
+        nextIdFin,
+        'Venda #' + novoId + ' - ' + (data.cliente || 'Consumidor'),
+        data.totalComDesconto, 'Receber',
+        vencimento, statusFin, 'Venda', novoId
+      ]);
+    }
+
+    return responseSucesso("✅ Venda #" + novoId + " concluída com sucesso!");
+  } catch (e) {
+    return responseErro("Falha ao lançar venda: " + e.message);
+  }
+}
+
+function handleSalvarRascunho(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName('Vendas');
+    if (!sheet) return responseErro("Aba 'Vendas' não encontrada.");
+
+    var novoId = proximoIdVendas(sheet);
+    sheet.appendRow([
+      novoId, data.data,
+      data.cliente || 'Consumidor Interno',
+      data.itens, data.quantidadeVendida,
+      data.subtotal, data.descontoPercentual, data.descontoReal,
+      data.totalComDesconto,
+      data.formaPagamento || '',
+      data.usuario || '',
+      'Pendente',
+      '', 
+      JSON.stringify(data.itensList || [])
+    ]);
+    return responseSucesso("💾 Rascunho #" + novoId + " salvo com sucesso!");
+  } catch (e) {
+    return responseErro("Erro ao salvar rascunho: " + e.message);
+  }
+}
+
+function handleEstornarVenda(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheetVendas = ss.getSheetByName('Vendas');
+    var sheetProdutos = ss.getSheetByName('Produtos');
+    var sheetFin = ss.getSheetByName('Financeiro');
+    
+    if (!sheetVendas) return responseErro("Aba 'Vendas' não encontrada.");
+
+    var todosDados = sheetVendas.getDataRange().getValues();
+    var linhaVenda = -1;
+    for (var i = 1; i < todosDados.length; i++) {
+        if (String(todosDados[i][0]) === String(data.id)) { linhaVenda = i + 1; break; }
+    }
+    if (linhaVenda === -1) return responseErro("Venda #" + data.id + " não encontrada.");
+
+    // 1. Devolve estoque
+    var itensList = [];
+    try { itensList = JSON.parse(todosDados[linhaVenda - 1][13] || '[]'); } catch(e) {}
+    devolverEstoqueItens(sheetProdutos, itensList);
+
+    // 2. Status Venda
+    sheetVendas.getRange(linhaVenda, 12).setValue('Estornada');
+
+    // 3. Cancela Financeiro
+    if (sheetFin && sheetFin.getLastRow() > 1) {
+      var dadosFin = sheetFin.getDataRange().getValues();
+      for (var i = 1; i < dadosFin.length; i++) {
+        if (String(dadosFin[i][7]) === String(data.id) && dadosFin[i][3] === 'Receber') {
+          sheetFin.getRange(i + 1, 6).setValue('Estornado');
+          break;
+        }
+      }
+    }
+    return responseSucesso("↩️ Venda #" + data.id + " estornada. Estoque devolvido.");
+  } catch (e) {
+    return responseErro("Erro ao estornar venda: " + e.message);
+  }
+}
+
+/**
+ * HELPERS DE NEGÓCIO
+ */
+
+function baixarEstoqueItens(sheetProdutos, itensList) {
+  if (!sheetProdutos || sheetProdutos.getLastRow() < 2 || !itensList || itensList.length === 0) return null;
+  var dadosProd = sheetProdutos.getDataRange().getValues();
+  var colNome = dadosProd[0].indexOf('Nome');
+  var colQtd  = dadosProd[0].indexOf('Quantidade');
+  if (colNome === -1 || colQtd === -1) return 'Colunas Nome/Quantidade não encontradas em Produtos.';
+
+  // Valida
+  for (var k = 0; k < itensList.length; k++) {
+    var nm = String(itensList[k].nome).trim();
+    var qt = parseFloat(itensList[k].quantidade) || 0;
+    var found = false;
+    for (var i = 1; i < dadosProd.length; i++) {
+      if (String(dadosProd[i][colNome]).trim() === nm) {
+        if ((parseFloat(dadosProd[i][colQtd]) || 0) < qt)
+          return '❌ Estoque insuficiente para "' + nm + '"! Disponível: ' + dadosProd[i][colQtd];
+        found = true; break;
+      }
+    }
+    if (!found) return 'Produto "' + nm + '" não encontrado.';
+  }
+
+  // Subtrai
+  for (var k = 0; k < itensList.length; k++) {
+    var nm = String(itensList[k].nome).trim();
+    var qt = parseFloat(itensList[k].quantidade) || 0;
+    for (var i = 1; i < dadosProd.length; i++) {
+      if (String(dadosProd[i][colNome]).trim() === nm) {
+        var novo = (parseFloat(dadosProd[i][colQtd]) || 0) - qt;
+        sheetProdutos.getRange(i + 1, colQtd + 1).setValue(novo);
+        break;
+      }
+    }
+  }
+  return null;
+}
+
+function devolverEstoqueItens(sheetProdutos, itensList) {
+  if (!sheetProdutos || !itensList || itensList.length === 0) return;
+  var dadosProd = sheetProdutos.getDataRange().getValues();
+  var colNome = dadosProd[0].indexOf('Nome');
+  var colQtd  = dadosProd[0].indexOf('Quantidade');
+  if (colNome === -1 || colQtd === -1) return;
+  for (var k = 0; k < itensList.length; k++) {
+    var nm = String(itensList[k].nome).trim();
+    var qt = parseFloat(itensList[k].quantidade) || 0;
+    for (var i = 1; i < dadosProd.length; i++) {
+      if (String(dadosProd[i][colNome]).trim() === nm) {
+        var novo = (parseFloat(dadosProd[i][colQtd]) || 0) + qt;
+        sheetProdutos.getRange(i + 1, colQtd + 1).setValue(novo);
+        break;
+      }
+    }
+  }
+}
+
+function proximoIdVendas(sheet) {
+  var last = sheet.getLastRow();
+  if (last < 2) return 1;
+  var val = sheet.getRange(last, 1).getValue();
+  return (parseInt(val) || 0) + 1;
 }
