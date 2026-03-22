@@ -205,7 +205,7 @@ window.Auth = (function () {
                 nomeCompleto,
                 nome: empresa, // Mestra espera 'nome' para empresa
                 whatsapp: telefone,
-                login,
+                usuario: login,
                 senha,
                 registro: now.toLocaleString('pt-BR'),
                 ativacao: fmt(now),
