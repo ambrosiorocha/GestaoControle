@@ -333,7 +333,7 @@ function upsertMasterClient(data, actionDescription) {
     targetRow = sheet.getLastRow();
   }
 
-  // APLICAR DATA VALIDATION (Dropdowns)
+  // 1. APLICAR DATA VALIDATION (Dropdowns)
   var colStatusIndex = headers.indexOf("Status");
   var colPlanoIndex = headers.indexOf("Plano");
 
@@ -345,6 +345,11 @@ function upsertMasterClient(data, actionDescription) {
     var rulePlano = SpreadsheetApp.newDataValidation().requireValueInList(['Básico', 'Pro', 'Premium'], true).build();
     sheet.getRange(targetRow, colPlanoIndex + 1).setDataValidation(rulePlano);
   }
+
+  // 2. CONGELAR FÓRMULAS (Freeze to Values)
+  // Converte toda a linha em valores estáticos para blindar os links gerados por fórmula
+  var rangeToFreeze = sheet.getRange(targetRow, 1, 1, lastCol);
+  rangeToFreeze.setValues(rangeToFreeze.getValues());
 }
 
 /**

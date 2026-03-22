@@ -219,6 +219,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
                 <div style="padding:1.5rem;">
                     <div id="contaError" style="display:none; background:#fef2f2; color:#b91c1c; border-radius:0.5rem; padding:0.75rem; font-size:0.85rem; margin-bottom:1.25rem; border:1px solid #fecaca;"></div>
+                    <div id="contaSuccess" style="display:none; background:#f0fdf4; color:#15803d; border-radius:0.5rem; padding:0.75rem; font-size:0.85rem; margin-bottom:1.25rem; border:1px solid #bbf7d0; text-align:center; font-weight:600;"></div>
                     
                     <div style="margin-bottom:1.15rem;">
                         <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:0.35rem;">Nome de Usuário</label>
@@ -546,6 +547,11 @@ window.abrirModalConta = function () {
         if (errBox) {
             errBox.style.display = 'none';
         }
+
+        const successBox = document.getElementById('contaSuccess');
+        if (successBox) {
+            successBox.style.display = 'none';
+        }
     } catch (e) {
         console.error('Erro ao abrir o modal de conta:', e);
         alert('Ocorreu um erro ao abrir as configurações.');
@@ -565,6 +571,7 @@ window.salvarConfiguracoesConta = function () {
     const whatsapp = document.getElementById('novoTelConta').value.trim();
     const senha = document.getElementById('novaSenhaConta').value.trim();
     const err = document.getElementById('contaError');
+    const success = document.getElementById('contaSuccess');
     const btn = document.getElementById('btnSalvarConta');
 
     if (!usuario) {
@@ -574,6 +581,7 @@ window.salvarConfiguracoesConta = function () {
     }
 
     err.style.display = 'none';
+    success.style.display = 'none';
     btn.innerHTML = '⏳ Salvando...';
     btn.disabled = true;
 
@@ -599,21 +607,21 @@ window.salvarConfiguracoesConta = function () {
         .then(r => r.json())
         .then(data => {
             if (data.status === 'sucesso' || data.status === 'ok') {
-                window.fecharModalConta();
+                // Sucesso Visual Customizado
+                success.textContent = '✅ Dados atualizados com sucesso!';
+                success.style.display = 'block';
 
                 // Atualiza sessão local
                 Auth.setUser(usuario);
                 if (payload.whatsapp) Auth.setWhatsApp(whatsapp);
 
                 document.getElementById('userBadge').textContent = usuario;
-                if (typeof exibirStatus === 'function') {
-                    exibirStatus({ status: 'success', mensagem: '✅ Perfil atualizado com sucesso!' });
-                } else {
-                    alert('Perfil atualizado com sucesso!');
-                }
 
-                // Opcional: recarrega para atualizar outros badges se necessário
-                // location.reload(); 
+                // Fecha o modal elegantemente após 2 segundos
+                setTimeout(() => {
+                    window.fecharModalConta();
+                }, 2000);
+
             } else {
                 err.textContent = data.mensagem || data.msg || 'Erro ao atualizar configurações.';
                 err.style.display = 'block';
