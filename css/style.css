@@ -452,3 +452,94 @@ input[type="number"] {
     font-size: 0.75rem;
     font-weight: 600;
 }
+
+/* ===== UPGRADE WALL (Upgrade CTA) ===== */
+.upgrade-wall-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1.5rem 1rem;
+    width: 100%;
+}
+
+.upgrade-wall {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 1.25rem;
+    padding: 2.25rem 1.75rem;
+    text-align: center;
+    color: white;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+    animation: fadeInUpWall 0.4s ease;
+}
+
+@keyframes fadeInUpWall {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.upgrade-wall-icon {
+    font-size: 2.8rem;
+    margin-bottom: 0.8rem;
+    display: block;
+    line-height: 1;
+}
+
+.upgrade-wall h2, .upgrade-wall h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff !important;
+    margin: 0 0 0.5rem !important;
+}
+
+.upgrade-wall p {
+    font-size: 0.82rem;
+    color: #94a3b8 !important;
+    line-height: 1.6;
+    margin: 0 auto 1.5rem !important;
+    max-width: 340px;
+}
+
+.upgrade-wall .badge-basico {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: #dcfce7;
+    color: #166534;
+    margin-bottom: 1rem;
+    letter-spacing: 0.03em;
+}
+
+.upgrade-wall .upgrade-cta, .upgrade-wall .wa-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    color: white;
+    border-radius: 0.625rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.upgrade-wall .upgrade-cta:hover, .upgrade-wall .wa-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(22, 163, 74, 0.5);
+    color: white;
+}
+
+/* ===== STATUS BADGE (inline text) ===== */
+.badge-status {
+    display: inline-block;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}

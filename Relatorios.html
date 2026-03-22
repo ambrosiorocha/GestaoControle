@@ -203,54 +203,8 @@
             color: #92400e;
         }
 
-        /* ===== UPGRADE WALL ===== */
-        .upgrade-wall {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 3rem 2rem;
-            gap: 1rem;
-        }
-
-        .upgrade-wall-icon {
-            font-size: 3rem;
-            line-height: 1;
-        }
-
-        .upgrade-wall h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #1e293b;
-            margin: 0;
-        }
-
-        .upgrade-wall p {
-            font-size: 0.85rem;
-            color: #64748b;
-            max-width: 320px;
-            margin: 0;
-        }
-
-        .upgrade-wall .upgrade-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.7rem 1.5rem;
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
-            color: white;
-            border-radius: 0.625rem;
-            font-size: 0.85rem;
-            font-weight: 700;
-            text-decoration: none;
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
-            transition: transform 0.15s ease;
-        }
-
-        .upgrade-cta:hover {
-            transform: translateY(-2px);
-        }
+        /* ===== UPGRADE WALL (Upgrade CTA) ===== */
+        /* Estilos centralizados no css/style.css */
     </style>
 </head>
 
@@ -280,17 +234,20 @@
             </div>
 
             <!-- ── Upgrade Wall (Básico) ───────────────────── -->
-            <div id="upgradeWall" class="upgrade-wall">
-                <div class="upgrade-wall-icon">🔒</div>
-                <h2>Relatórios Estratégicos</h2>
-                <p>Os dashboards e gráficos de performance estão disponíveis apenas nos planos <strong>Pro</strong> e
-                    <strong>Premium</strong>.
-                </p>
-                <a href="#"
-                    onclick="window.open('https://wa.me/5581981438242?text=' + encodeURIComponent('Olá, Gestor! Gostaria de fazer o upgrade para o plano Pro ou Premium para liberar os Relatórios Estratégicos no meu sistema.'), '_blank'); return false;"
-                    class="upgrade-cta">
-                    ⭐ Fazer Upgrade do Plano
-                </a>
+            <div class="upgrade-wall-container">
+                <div id="upgradeWall" class="upgrade-wall" style="display:none;">
+                    <div class="upgrade-wall-icon">🔒</div>
+                    <h2>Relatórios Estratégicos</h2>
+                    <p>Os dashboards e gráficos de performance estão disponíveis apenas nos planos <strong>Pro</strong>
+                        e
+                        <strong>Premium</strong>.
+                    </p>
+                    <a href="#"
+                        onclick="window.open('https://wa.me/5581981438242?text=' + encodeURIComponent('Olá, Gestor! Gostaria de fazer o upgrade para o plano Pro ou Premium para liberar os Relatórios Estratégicos no meu sistema.'), '_blank'); return false;"
+                        class="upgrade-cta">
+                        ⭐ Fazer Upgrade do Plano
+                    </a>
+                </div>
             </div>
 
             <div id="loading" class="text-center text-gray-500 mb-6">Carregando dados...</div>
