@@ -222,7 +222,6 @@
                 <div class="upgrade-wall">
                     <div class="upgrade-wall-icon">🔒</div>
                     <div class="badge-basico">🟢 Plano Básico Ativo</div>
-                    <h3>Acesso de Equipe Bloqueado</h3>
                     <p>Seu plano atual permite apenas <strong>1 usuário (Administrador)</strong>.
                     Faça o upgrade para o plano <strong>Pro</strong> ou <strong>Premium</strong>
                     e adicione quantos funcionários precisar, cada um com seu próprio login e senha.</p>
@@ -364,7 +363,7 @@
         // ── Excluir operador ──────────────────────────────────────────
         function excluirOperador(nome) {
             if (!confirm(`Remover o acesso de "${nome}"? Esta ação não pode ser desfeita.`)) return;
-            fetch(window.SCRIPT_URL, {
+            fetch(window.MASTER_WEBHOOK_URL, {
                 method: 'POST',
                 body: JSON.stringify({ action: 'excluirOperador', data: { nome } })
             })

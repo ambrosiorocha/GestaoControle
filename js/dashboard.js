@@ -1,7 +1,6 @@
 document.addEventListener('DOMContentLoaded', function () {
-    if (SCRIPT_URL === '') {
-        exibirStatus({ status: 'error', mensagem: 'Por favor, cole a URL do Apps Script no código.' });
-        document.getElementById('loading').classList.add('hidden');
+    if (!window.MASTER_WEBHOOK_URL) {
+        console.error('URL da Mestra não configurada.');
         return;
     }
     carregarDadosDashboard();

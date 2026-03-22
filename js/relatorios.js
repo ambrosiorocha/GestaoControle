@@ -7,9 +7,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Aguarda Auth.init (disparado pelo main.js)
     // A chamada a carregarRelatorios é feita via Auth callback no main.js
     // Mas para páginas que carregam o script diretamente, ouvimos aqui também.
-    if (SCRIPT_URL === '') {
-        exibirStatus({ status: 'error', mensagem: 'Por favor, cole a URL do Apps Script no código.' });
-        document.getElementById('loading').classList.add('hidden');
+    if (!window.MASTER_WEBHOOK_URL) {
+        console.error('URL da Mestra não configurada.');
         return;
     }
 
@@ -47,8 +46,13 @@ function _verificarAcessoECarregar() {
 
     if (isBasico) {
         // Exibe parede de upgrade
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('upgradeWall').style.display = 'flex';
+        const loadingEl = document.getElementById('loading');
+        if (loadingEl) loadingEl.style.display = 'none';
+
+        const wall = document.getElementById('upgradeWall');
+        if (wall) {
+            wall.style.display = 'flex';
+        }
         return;
     }
 
