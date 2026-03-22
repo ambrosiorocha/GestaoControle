@@ -220,17 +220,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div style="padding:1.5rem;">
                     <div id="contaError" style="display:none; background:#fef2f2; color:#b91c1c; border-radius:0.5rem; padding:0.75rem; font-size:0.85rem; margin-bottom:1.25rem; border:1px solid #fecaca;"></div>
                     
-                    <div style="margin-bottom:1.25rem;">
-                        <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:0.4rem;">Novo Nome de Usuário</label>
-                        <input type="text" id="novoUsuarioConta" style="width:100%; padding:0.65rem; border:1.5px solid #e2e8f0; border-radius:0.5rem; outline:none; font-size:0.95rem;" placeholder="Ex: admin">
+                    <div style="margin-bottom:1.15rem;">
+                        <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:0.35rem;">Nome de Usuário</label>
+                        <input type="text" id="novoUsuarioConta" style="width:100%; padding:0.6rem; border:1.5px solid #e2e8f0; border-radius:0.5rem; outline:none; font-size:0.9rem;" placeholder="Ex: admin">
+                    </div>
+
+                    <div style="margin-bottom:1.15rem;">
+                        <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:0.35rem;">WhatsApp / Telefone</label>
+                        <input type="text" id="novoTelConta" style="width:100%; padding:0.6rem; border:1.5px solid #e2e8f0; border-radius:0.5rem; outline:none; font-size:0.9rem;" placeholder="DDD + Número">
                     </div>
                     
                     <div style="margin-bottom:1.5rem;">
-                        <label style="display:block; font-size:0.85rem; font-weight:600; color:#475569; margin-bottom:0.4rem;">Nova Senha</label>
-                        <input type="password" id="novaSenhaConta" style="width:100%; padding:0.65rem; border:1.5px solid #e2e8f0; border-radius:0.5rem; outline:none; font-size:0.95rem;" placeholder="Deixe em branco para manter">
+                        <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:0.35rem;">Nova Senha</label>
+                        <input type="password" id="novaSenhaConta" style="width:100%; padding:0.6rem; border:1.5px solid #e2e8f0; border-radius:0.5rem; outline:none; font-size:0.9rem;" placeholder="Deixe em branco para manter a atual">
                     </div>
                     
-                    <button id="btnSalvarConta" onclick="salvarConfiguracoesConta()" style="width:100%; padding:0.75rem; background:#2563eb; color:white; border:none; border-radius:0.5rem; font-weight:700; cursor:pointer; transition:background 0.2s;">
+                    <button id="btnSalvarConta" onclick="salvarConfiguracoesConta()" style="width:100%; padding:0.75rem; background:#16a34a; color:white; border:none; border-radius:0.5rem; font-weight:700; cursor:pointer; transition:background 0.2s; box-shadow: 0 4px 12px rgba(22,163,74,0.3);">
                         ✅ Salvar Alterações
                     </button>
                 </div>
@@ -527,6 +532,11 @@ window.abrirModalConta = function () {
             inputUser.value = (typeof Auth !== 'undefined' && Auth.getUser) ? (Auth.getUser() || '') : '';
         }
 
+        const inputTel = document.getElementById('novoTelConta');
+        if (inputTel) {
+            inputTel.value = (typeof Auth !== 'undefined' && Auth.getWhatsApp) ? (Auth.getWhatsApp() || '') : '';
+        }
+
         const inputSenha = document.getElementById('novaSenhaConta');
         if (inputSenha) {
             inputSenha.value = '';
@@ -552,6 +562,7 @@ window.fecharModalConta = function () {
 
 window.salvarConfiguracoesConta = function () {
     const usuario = document.getElementById('novoUsuarioConta').value.trim();
+    const whatsapp = document.getElementById('novoTelConta').value.trim();
     const senha = document.getElementById('novaSenhaConta').value.trim();
     const err = document.getElementById('contaError');
     const btn = document.getElementById('btnSalvarConta');
@@ -566,28 +577,45 @@ window.salvarConfiguracoesConta = function () {
     btn.innerHTML = '⏳ Salvando...';
     btn.disabled = true;
 
+    // Payload Inteligente: Só envia o que mudou ou campos obrigatórios
+    const payload = {
+        acao: 'atualizarCredenciais',
+        spreadsheetId: window.SPREADSHEET_ID,
+        novoUsuario: usuario
+    };
+
+    if (whatsapp !== Auth.getWhatsApp()) {
+        payload.whatsapp = whatsapp;
+    }
+
+    if (senha !== "") {
+        payload.novaSenha = senha;
+    }
+
     fetch(window.MASTER_WEBHOOK_URL, {
         method: 'POST',
-        body: JSON.stringify({
-            acao: 'atualizarCredenciais',
-            spreadsheetId: window.SPREADSHEET_ID,
-            novoUsuario: usuario,
-            novaSenha: senha || '' // Vazio = não alterar
-        })
+        body: JSON.stringify(payload)
     })
         .then(r => r.json())
         .then(data => {
             if (data.status === 'sucesso' || data.status === 'ok') {
                 window.fecharModalConta();
+
+                // Atualiza sessão local
                 Auth.setUser(usuario);
+                if (payload.whatsapp) Auth.setWhatsApp(whatsapp);
+
                 document.getElementById('userBadge').textContent = usuario;
                 if (typeof exibirStatus === 'function') {
-                    exibirStatus({ status: 'success', mensagem: '✅ Acesso atualizado com sucesso!' });
+                    exibirStatus({ status: 'success', mensagem: '✅ Perfil atualizado com sucesso!' });
                 } else {
-                    alert('Credenciais atualizadas com sucesso!');
+                    alert('Perfil atualizado com sucesso!');
                 }
+
+                // Opcional: recarrega para atualizar outros badges se necessário
+                // location.reload(); 
             } else {
-                err.textContent = data.mensagem || 'Erro ao atualizar configurações.';
+                err.textContent = data.mensagem || data.msg || 'Erro ao atualizar configurações.';
                 err.style.display = 'block';
             }
         })

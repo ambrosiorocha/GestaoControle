@@ -104,6 +104,7 @@ function handleAutenticarOperador(data) {
         nivel: configs["Nivel"] || "Admin",
         plano: configs["Plano"] || "Básico",
         empresa: configs["Empresa"] || "Minha Empresa",
+        whatsapp: configs["Telefone"] || configs["WhatsApp"] || "",
         permissoes: configs["Permissoes"] ? JSON.parse(configs["Permissoes"]) : {}
       });
     } else {
@@ -230,21 +231,36 @@ function handleAtualizarCredenciais(data) {
     var configSheet = clientSS.getSheetByName("Configurações");
     if (!configSheet) return responseErro("Aba 'Configurações' não encontrada no cliente.");
     
-    var credentialsMap = {
-      "Usuario": data.novoUsuario || data.usuario,
-      "Senha": data.novaSenha || data.senha
-    };
+    var credentialsMap = {};
+    var logParts = [];
+    
+    if (data.novoUsuario) {
+        credentialsMap["Usuario"] = data.novoUsuario;
+        logParts.push("Usuário alterado para " + data.novoUsuario);
+    }
+    
+    if (data.whatsapp) {
+        credentialsMap["Telefone"] = data.whatsapp;
+        logParts.push("Telefone atualizado");
+    }
+    
+    if (data.novaSenha && data.novaSenha.trim() !== "") {
+        credentialsMap["Senha"] = data.novaSenha;
+        logParts.push("Senha alterada");
+    }
+    
+    if (Object.keys(credentialsMap).length === 0) {
+        return responseSucesso("Nenhuma alteração detectada.");
+    }
+    
     updateHorizontalConfig(configSheet, credentialsMap);
     
     // B. Atualizar na Mestra (Upsert + Audit Trail)
-    var logMsg = "Credenciais atualizadas: ";
-    if (data.novoUsuario) logMsg += "Usuário alterado (" + data.novoUsuario + ") ";
-    if (data.novaSenha) logMsg += "Senha alterada";
+    var upsertData = { spreadsheetId: id };
+    if (data.novoUsuario) upsertData.usuario = data.novoUsuario;
+    if (data.whatsapp) upsertData.whatsapp = data.whatsapp;
     
-    upsertMasterClient({
-      spreadsheetId: id,
-      usuario: data.novoUsuario || data.usuario
-    }, logMsg);
+    upsertMasterClient(upsertData, "Atualização de Perfil: " + logParts.join(" | "));
     
     return responseSucesso("Credenciais atualizadas com sucesso.");
     

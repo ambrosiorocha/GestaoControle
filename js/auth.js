@@ -4,12 +4,20 @@
 // ============================================================
 
 window.Auth = (function () {
-    const K = { user: 'sv_user', nivel: 'sv_nivel', ts: 'sv_ts', plano: 'sv_plano', perm: 'sv_permissoes' };
+    const K = {
+        user: 'sv_user',
+        nivel: 'sv_nivel',
+        ts: 'sv_ts',
+        plano: 'sv_plano',
+        perm: 'sv_permissoes',
+        whatsapp: 'sv_whatsapp'
+    };
     const SESSION_MS = 8 * 3600 * 1000;
     let _cb = null;
 
     function getUser() { return localStorage.getItem(K.user) || ''; }
     function getNivel() { return localStorage.getItem(K.nivel) || 'Operador'; }
+    function getWhatsApp() { return localStorage.getItem(K.whatsapp) || ''; }
     function isAdmin() {
         const n = getNivel().toLowerCase();
         return n === 'admin' || n === 'administrador';
@@ -19,14 +27,18 @@ window.Auth = (function () {
         const ts = parseInt(localStorage.getItem(K.ts) || '0');
         return (Date.now() - ts) < SESSION_MS;
     }
-    function saveSession(nome, nivel, plano, permissoes, empresa) {
+    function saveSession(nome, nivel, plano, permissoes, empresa, whatsapp) {
         localStorage.setItem(K.user, nome);
         localStorage.setItem(K.nivel, nivel);
         localStorage.setItem(K.plano, plano || 'Básico');
         localStorage.setItem(K.perm, JSON.stringify(permissoes || {}));
         if (empresa) localStorage.setItem('sv_empresa', empresa);
+        if (whatsapp) localStorage.setItem(K.whatsapp, whatsapp);
         localStorage.setItem(K.ts, Date.now().toString());
     }
+
+    function setUser(val) { localStorage.setItem(K.user, val); }
+    function setWhatsApp(val) { localStorage.setItem(K.whatsapp, val); }
 
     function getEmpresa() { return localStorage.getItem('sv_empresa') || 'Gestão&Controle'; }
 
@@ -46,7 +58,8 @@ window.Auth = (function () {
     function podeVerCusto() { return !isPlanBasico() && (isAdmin() || getPermissoes().visaoDono === true); }
 
     function logout() {
-        [K.user, K.nivel, K.ts, K.plano, K.perm].forEach(k => localStorage.removeItem(k));
+        [K.user, K.nivel, K.ts, K.plano, K.perm, K.whatsapp].forEach(k => localStorage.removeItem(k));
+        localStorage.removeItem('sv_empresa');
         window.location.href = 'index.html';
     }
 
@@ -129,7 +142,7 @@ window.Auth = (function () {
             })
             .then(data => {
                 if (data.status === 'sucesso') {
-                    saveSession(data.nome, data.nivel, data.plano, data.permissoes, data.empresa);
+                    saveSession(data.nome, data.nivel, data.plano, data.permissoes, data.empresa, data.whatsapp);
                     const ov = document.getElementById('loginOverlay');
                     if (ov) ov.remove();
                     if (_cb) _cb();
@@ -219,7 +232,8 @@ window.Auth = (function () {
             })
             .then(data => {
                 if (data.status === 'sucesso') {
-                    // Fecha o modal e abre o login
+                    // Inicializa a sessão local para o primeiro acesso
+                    saveSession(login, 'Admin', data.plano || 'Básico', {}, empresa, telefone);
                     const fa = document.getElementById('firstAccessOverlay');
                     if (fa) fa.remove();
                     showModal(_cb);
@@ -460,9 +474,9 @@ window.Auth = (function () {
     }
 
     return {
-        getUser, getNivel, getPlan, getEmpresa, isPlanBasico, isAdmin, isLoggedIn,
+        getUser, getNivel, getWhatsApp, getPlan, getEmpresa, isPlanBasico, isAdmin, isLoggedIn,
         getPermissoes, podeVerRelatorios, podeVenderFiado, podeVerCusto,
         logout, requireAdmin, requirePlan, applyUI, updateBadge,
-        init, showModal, _doLogin, _doFirstAccess
+        init, showModal, _doLogin, _doFirstAccess, setUser, setWhatsApp
     };
 })();
