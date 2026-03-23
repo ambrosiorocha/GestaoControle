@@ -26,6 +26,11 @@ function doPost(e) {
     var acao = payload.acao || payload.action;
     var data = payload.payload || payload.data || payload; 
     
+    // Garantir que o spreadsheetId esteja disponível no objeto data para os handlers
+    if (!data.spreadsheetId && payload.spreadsheetId) {
+      data.spreadsheetId = payload.spreadsheetId;
+    }
+    
     // 3. Roteador de Ações
     switch (acao) {
       case 'primeiroAcesso':
@@ -48,14 +53,39 @@ function doPost(e) {
       case 'salvarRascunho':
         return handleSalvarRascunho(data);
 
+      case 'finalizarPendente':
+        return handleFinalizarPendente(data);
+
       case 'estornarVenda':
         return handleEstornarVenda(data);
       
+      case 'listarProdutos':
+      case 'obterProdutos':
+        return handleObterProdutos(data);
+
+      case 'obterOperadores':
+        return handleObterOperadores(data);
+
+      case 'obterClientes':
+        return handleObterClientes(data);
+
+      case 'obterVendas':
+        return handleObterVendas(data);
+
+      case 'obterLucro':
       case 'obterDadosRelatorios':
         var resPlanoRel = verificarPermissaoPlano(data.spreadsheetId, 'Relatórios');
         if (resPlanoRel.status === 'erro') return responseErro(resPlanoRel.mensagem);
-        // handleObterDadosRelatorios será implementado na migração de Relatórios
-        return responseErro("Ação 'obterDadosRelatorios' ainda não migrada para a Mestra.");
+        return handleObterDadosRelatorios(data);
+
+      case 'obterRascunhos':
+        return handleObterRascunhos(data);
+
+      case 'obterFinanceiro':
+        return handleObterFinanceiro(data);
+
+      case 'excluirRascunho':
+        return handleExcluirRascunho(data);
     }
     
   } catch (err) {
@@ -132,10 +162,112 @@ function handleAutenticarOperador(data) {
 /**
  * Helper para resposta de sucesso com dados extras
  */
-function responseSucessoMsg(msg, extraData) {
+function handleObterFinanceiro(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName("Financeiro");
+    if (!sheet || sheet.getLastRow() < 2) {
+      return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: [], rows: [] } });
+    }
+    var values = sheet.getDataRange().getValues();
+    var headers = values.shift();
+    return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: headers, rows: values } });
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleObterRascunhos(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName("Vendas");
+    if (!sheet || sheet.getLastRow() < 2) return responseSucessoMsg("Sucesso", { dados: [] });
+    
+    var values = sheet.getDataRange().getValues();
+    var headers = values.shift();
+    var rascunhos = values.filter(function(row) {
+      return row[11] === 'Pendente'; 
+    });
+    
+    return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: headers, rows: rascunhos } });
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleExcluirRascunho(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName("Vendas");
+    if (!sheet) return responseErro("Aba Vendas não encontrada.");
+    
+    var id = data.id || (data.data ? data.data.id : null);
+    if (!id) return responseErro("ID do rascunho não informado.");
+
+    var values = sheet.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][0]) === String(id)) {
+        if (values[i][11] !== 'Pendente') {
+          return responseErro("Apenas rascunhos pendentes podem ser excluídos diretamente.");
+        }
+        sheet.deleteRow(i + 1);
+        return responseSucesso("🗑️ Rascunho #" + id + " excluído.");
+      }
+    }
+    return responseErro("Rascunho não encontrado.");
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleObterDadosRelatorios(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheetVendas = ss.getSheetByName('Vendas');
+    var sheetProds  = ss.getSheetByName('Produtos');
+    if (!sheetVendas || sheetVendas.getLastRow() < 2) {
+      return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: [], rows: [] } });
+    }
+
+    var vendasRaw = sheetVendas.getDataRange().getValues();
+    var headersVendas = vendasRaw.shift();
+    var prodsRaw = sheetProds ? sheetProds.getDataRange().getValues() : [];
+    
+    // Mapeamento de custos para cálculo de lucro
+    var custosMap = {};
+    if (prodsRaw.length > 1) {
+      var hP = prodsRaw.shift();
+      var idxPNome = hP.indexOf('Nome');
+      var idxPCusto = hP.indexOf('Preço_de_custo');
+      if (idxPCusto === -1) idxPCusto = hP.indexOf('PrecoCusto');
+      
+      prodsRaw.forEach(function(p) {
+        if (idxPNome > -1 && idxPCusto > -1) {
+          custosMap[String(p[idxPNome]).trim()] = parseFloat(p[idxPCusto]) || 0;
+        }
+      });
+    }
+
+    var rowsCompleto = vendasRaw.map(function(v) {
+      var itensJSON = [];
+      try { itensJSON = JSON.parse(v[13] || '[]'); } catch(e) {}
+      
+      var custoTotalVenda = 0;
+      itensJSON.forEach(function(it) {
+        var unitCusto = custosMap[String(it.nome).trim()] || 0;
+        custoTotalVenda += unitCusto * (parseFloat(it.quantidade) || 0);
+      });
+
+      var r = v.slice(); // Cópia
+      r.push(custoTotalVenda); // Nova coluna: Custo Total
+      return r;
+    });
+
+    var headersFinal = headersVendas.slice();
+    headersFinal.push('Custo Total');
+
+    return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: headersFinal, rows: rowsCompleto } });
+  } catch (e) { return responseErro(e.message); }
+}
+
+function responseSucessoMsg(msg, extra) {
   var res = { status: "sucesso", mensagem: msg };
-  if (extraData) {
-    for (var key in extraData) res[key] = extraData[key];
+  if (extra) {
+    for (var k in extra) res[k] = extra[k];
   }
   return ContentService.createTextOutput(JSON.stringify(res))
     .setMimeType(ContentService.MimeType.JSON);
@@ -410,7 +542,7 @@ function updateHorizontalConfig(sheet, dataMap) {
 }
 
 function responseSucesso(msg) {
-  return ContentService.createTextOutput(JSON.stringify({ status: "sucesso", msg: msg }))
+  return ContentService.createTextOutput(JSON.stringify({ status: "sucesso", mensagem: msg }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -541,11 +673,14 @@ function handleEstornarVenda(data) {
     if (!sheetVendas) return responseErro("Aba 'Vendas' não encontrada.");
 
     var todosDados = sheetVendas.getDataRange().getValues();
+    var idVenda = data.id || (data.data ? data.data.id : null);
+    if (!idVenda) return responseErro("ID da venda não informado.");
+
     var linhaVenda = -1;
     for (var i = 1; i < todosDados.length; i++) {
-        if (String(todosDados[i][0]) === String(data.id)) { linhaVenda = i + 1; break; }
+        if (String(todosDados[i][0]) === String(idVenda)) { linhaVenda = i + 1; break; }
     }
-    if (linhaVenda === -1) return responseErro("Venda #" + data.id + " não encontrada.");
+    if (linhaVenda === -1) return responseErro("Venda #" + idVenda + " não encontrada.");
 
     // 1. Devolve estoque
     var itensList = [];
@@ -559,16 +694,146 @@ function handleEstornarVenda(data) {
     if (sheetFin && sheetFin.getLastRow() > 1) {
       var dadosFin = sheetFin.getDataRange().getValues();
       for (var i = 1; i < dadosFin.length; i++) {
-        if (String(dadosFin[i][7]) === String(data.id) && dadosFin[i][3] === 'Receber') {
+        if (String(dadosFin[i][7]) === String(idVenda) && dadosFin[i][3] === 'Receber') {
           sheetFin.getRange(i + 1, 6).setValue('Estornado');
           break;
         }
       }
     }
-    return responseSucesso("↩️ Venda #" + data.id + " estornada. Estoque devolvido.");
+    return responseSucesso("↩️ Venda #" + idVenda + " estornada. Estoque devolvido.");
   } catch (e) {
     return responseErro("Erro ao estornar venda: " + e.message);
   }
+}
+
+function handleFinalizarPendente(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheetVendas = ss.getSheetByName('Vendas');
+    var sheetProdutos = ss.getSheetByName('Produtos');
+    var sheetFin = ss.getSheetByName('Financeiro');
+    if (!sheetVendas) return responseErro("Aba 'Vendas' não encontrada.");
+
+    var vData = data.data || data;
+    var todosDados = sheetVendas.getDataRange().getValues();
+    var linhaVenda = -1;
+    for (var i = 1; i < todosDados.length; i++) {
+      if (String(todosDados[i][0]) === String(vData.id)) { linhaVenda = i + 1; break; }
+    }
+    if (linhaVenda === -1) return responseErro("Venda #" + vData.id + " não encontrada.");
+
+    var itensList = [];
+    try { itensList = JSON.parse(todosDados[linhaVenda - 1][13] || '[]'); } catch(e) {}
+    if (vData.itensList && vData.itensList.length > 0) itensList = vData.itensList;
+
+    var erro = baixarEstoqueItens(sheetProdutos, itensList);
+    if (erro) return responseErro(erro);
+
+    var vencimento = vData.vencimento || vData.data || todosDados[linhaVenda - 1][1];
+    var statusFin  = vData.statusFinanceiro || 'Pendente';
+    var total      = parseFloat(todosDados[linhaVenda - 1][8]) || 0;
+    var cliente    = todosDados[linhaVenda - 1][2] || 'Consumidor';
+    var pgto       = vData.formaPagamento || todosDados[linhaVenda - 1][9] || '';
+
+    sheetVendas.getRange(linhaVenda, 10).setValue(pgto);
+    sheetVendas.getRange(linhaVenda, 12).setValue('Concluda');
+    sheetVendas.getRange(linhaVenda, 13).setValue(vencimento);
+
+    if (sheetFin) {
+      var lastRowFin = sheetFin.getLastRow();
+      var nextIdFin = lastRowFin > 1 ? (parseInt(sheetFin.getRange(lastRowFin, 1).getValue()) || 0) + 1 : 1;
+      sheetFin.appendRow([
+        nextIdFin,
+        'Venda #' + vData.id + ' - ' + cliente,
+        total, 'Receber', vencimento, statusFin, 'Venda', vData.id
+      ]);
+    }
+    return responseSucesso("✅ Venda #" + vData.id + " finalizada!");
+  } catch (e) {
+    return responseErro("Erro ao finalizar pendente: " + e.message);
+  }
+}
+
+/**
+ * FUNÇÕES DE LEITURA (MIGRADO DO CÓDIGO LEGADO)
+ */
+
+function handleObterProdutos(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName("Produtos");
+    if (!sheet || sheet.getLastRow() < 2) {
+      return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: [], rows: [] } });
+    }
+    var values = sheet.getDataRange().getValues();
+    var headers = values.shift();
+    return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: headers, rows: values } });
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleObterOperadores(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName('Configurações');
+    if (!sheet || sheet.getLastRow() < 2) return responseSucessoMsg("Sucesso", { dados: [] });
+    var values = sheet.getDataRange().getValues();
+    var headers = values[0];
+    var colNome = headers.indexOf('Nome');
+    if (colNome === -1) colNome = headers.indexOf('Usuario'); 
+    
+    var nomes = [];
+    for (var i = 1; i < values.length; i++) {
+      if (values[i][colNome]) nomes.push(values[i][colNome]);
+    }
+    return responseSucessoMsg("Sucesso", { dados: nomes });
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleObterClientes(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName("Clientes");
+    if (!sheet || sheet.getLastRow() < 2) {
+      return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: [], rows: [] } });
+    }
+    var values = sheet.getDataRange().getValues();
+    var headers = values.shift();
+    return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: headers, rows: values } });
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleObterVendas(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheetVendas = ss.getSheetByName('Vendas');
+    var sheetHistorico = ss.getSheetByName('Historico_Vendas');
+    var todosDados = [];
+    
+    if (sheetVendas && sheetVendas.getLastRow() > 1) {
+      todosDados = sheetVendas.getRange(2, 1, sheetVendas.getLastRow() - 1, sheetVendas.getLastColumn()).getValues();
+    }
+
+    var limite = new Date();
+    limite.setDate(limite.getDate() - 60);
+    
+    var dIni = data.dataInicio ? new Date(data.dataInicio + 'T00:00:00') : null;
+    if (dIni && !isNaN(dIni) && dIni < limite && sheetHistorico && sheetHistorico.getLastRow() > 1) {
+      var dadosHist = sheetHistorico.getRange(2, 1, sheetHistorico.getLastRow() - 1, sheetHistorico.getLastColumn()).getValues();
+      todosDados = todosDados.concat(dadosHist);
+    }
+
+    var rows = todosDados.map(function(row) {
+      return [
+        row[0], row[1], row[2] || '', row[3] || '',
+        row[4] || 0, row[5] || 0, row[6] || 0, row[7] || 0, row[8] || 0,
+        row[9] || '', row[10] || '', row[11] || '', row[12], row[13] || '[]'
+      ];
+    });
+    
+    var headers = ['ID da Venda', 'Data', 'Cliente', 'Itens', 'Quantidade Vendida', 'Subtotal', 'Desconto (%)', 'Desconto (R$)', 'Total com Desconto', 'Forma de Pagamento', 'Usuario', 'Status', 'Vencimento', 'ItensJSON'];
+
+    return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: headers, rows: rows } });
+  } catch (e) { return responseErro(e.message); }
 }
 
 /**
