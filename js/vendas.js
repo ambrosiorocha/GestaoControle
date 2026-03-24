@@ -749,7 +749,7 @@ async function confirmarEstorno(id) {
     try {
         const res = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'estornarVenda', data: { id }, spreadsheetId: window.SPREADSHEET_ID })
+            body: JSON.stringify({ action: 'estornarVenda', idVenda: id, spreadsheetId: window.SPREADSHEET_ID })
         });
         const data = await res.json();
         exibirStatus(data);
@@ -765,7 +765,7 @@ async function excluirVenda(id) {
     try {
         const res = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'excluirRascunho', data: { id }, spreadsheetId: window.SPREADSHEET_ID })
+            body: JSON.stringify({ action: 'excluirRascunho', idRascunho: id, spreadsheetId: window.SPREADSHEET_ID })
         });
         const data = await res.json();
         exibirStatus(data);

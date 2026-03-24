@@ -239,8 +239,9 @@ function handleExcluirRascunho(data) {
     var sheet = ss.getSheetByName("Vendas");
     if (!sheet) return responseErro("Aba Vendas não encontrada.");
     
-    var id = data.id || (data.data ? data.data.id : null);
-    if (!id) return responseErro("ID do rascunho não informado.");
+    // Blindagem de ID: Tenta capturar de várias chaves comuns no payload
+    var id = data.id || data.idRascunho || data.idVenda || data.numero || (data.data ? (data.data.id || data.data.idRascunho) : null);
+    if (!id) return responseErro("ID da venda/rascunho não fornecido no payload.");
 
     var values = sheet.getDataRange().getValues();
     for (var i = 1; i < values.length; i++) {
@@ -944,8 +945,8 @@ function handleEstornarVenda(data) {
     if (!sheetVendas) return responseErro("Aba 'Vendas' não encontrada.");
 
     var todosDados = sheetVendas.getDataRange().getValues();
-    var idVenda = data.id || (data.data ? data.data.id : null);
-    if (!idVenda) return responseErro("ID da venda não informado.");
+    var idVenda = data.id || data.idVenda || data.idRascunho || data.numero || (data.data ? (data.data.id || data.data.idVenda) : null);
+    if (!idVenda) return responseErro("ID da venda não fornecido no payload.");
 
     var linhaVenda = -1;
     for (var i = 1; i < todosDados.length; i++) {
