@@ -352,7 +352,10 @@ async function salvarRascunho() {
         if (vendaEditandoId) payload.id = vendaEditandoId;
 
         try {
-            const res = await fetch(window.MASTER_WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ action: action, data: payload, spreadsheetId: window.SPREADSHEET_ID }) });
+            const res = await fetch(window.MASTER_WEBHOOK_URL, {
+                method: 'POST',
+                body: JSON.stringify({ acao: action, action: action, data: payload, spreadsheetId: window.SPREADSHEET_ID })
+            });
             const data = await res.json();
             exibirStatus(data);
             if (data.status === 'sucesso') {
@@ -512,10 +515,16 @@ async function confirmarVenda() {
         payload.statusFinanceiro = prazoResult.status;
 
         const action = vendaEditandoId ? 'finalizarPendente' : 'lancarVenda';
-        if (vendaEditandoId) payload.id = vendaEditandoId;
+        if (vendaEditandoId) {
+            payload.id = vendaEditandoId;
+            payload.idVenda = vendaEditandoId;
+        }
 
         try {
-            const res = await fetch(window.MASTER_WEBHOOK_URL, { method: 'POST', body: JSON.stringify({ action, data: payload, spreadsheetId: window.SPREADSHEET_ID }) });
+            const res = await fetch(window.MASTER_WEBHOOK_URL, {
+                method: 'POST',
+                body: JSON.stringify({ acao: action, action: action, data: payload, spreadsheetId: window.SPREADSHEET_ID })
+            });
             const data = await res.json();
             fecharModal();
             exibirStatus(data);

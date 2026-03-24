@@ -916,20 +916,39 @@ function handleSalvarRascunho(data) {
     var sheet = ss.getSheetByName('Vendas');
     if (!sheet) return responseErro("Aba 'Vendas' não encontrada.");
 
-    var novoId = proximoIdVendas(sheet);
-    sheet.appendRow([
-      novoId, data.data,
-      data.cliente || 'Consumidor Interno',
-      data.itens, data.quantidadeVendida,
-      data.subtotal, data.descontoPercentual, data.descontoReal,
-      data.totalComDesconto,
-      data.formaPagamento || '',
-      data.usuario || '',
+    var vData = data.data || data;
+    var idRascunho = vData.id || vData.idRascunho || data.id || data.idRascunho;
+    var todosDados = sheet.getDataRange().getValues();
+    var linhaVenda = -1;
+
+    // Se tiver ID, tenta achar para ATUALIZAR
+    if (idRascunho) {
+      for (var i = 1; i < todosDados.length; i++) {
+        if (String(todosDados[i][0]) === String(idRascunho)) { linhaVenda = i + 1; break; }
+      }
+    }
+
+    var finalId = idRascunho && linhaVenda > -1 ? idRascunho : proximoIdVendas(sheet);
+    var rowData = [
+      finalId, vData.data,
+      vData.cliente || 'Consumidor Interno',
+      vData.itens, vData.quantidadeVendida,
+      vData.subtotal, vData.descontoPercentual, vData.descontoReal,
+      vData.totalComDesconto,
+      vData.formaPagamento || '-',
+      vData.usuario || '',
       'Pendente',
       '', 
-      JSON.stringify(data.itensList || [])
-    ]);
-    return responseSucesso("💾 Rascunho #" + novoId + " salvo com sucesso!");
+      JSON.stringify(vData.itensList || [])
+    ];
+
+    if (linhaVenda > -1) {
+      sheet.getRange(linhaVenda, 1, 1, rowData.length).setValues([rowData]);
+      return responseSucesso("💾 Rascunho #" + finalId + " atualizado!");
+    } else {
+      sheet.appendRow(rowData);
+      return responseSucesso("💾 Rascunho #" + finalId + " salvo!");
+    }
   } catch (e) {
     return responseErro("Erro ao salvar rascunho: " + e.message);
   }
@@ -987,12 +1006,15 @@ function handleFinalizarPendente(data) {
     if (!sheetVendas) return responseErro("Aba 'Vendas' não encontrada.");
 
     var vData = data.data || data;
+    // Blindagem de ID: Captura de múltiplas chaves
+    var idVenda = vData.id || vData.idVenda || vData.idRascunho || data.id || data.idVenda || data.idRascunho || data.numero;
+    
     var todosDados = sheetVendas.getDataRange().getValues();
     var linhaVenda = -1;
     for (var i = 1; i < todosDados.length; i++) {
-      if (String(todosDados[i][0]) === String(vData.id)) { linhaVenda = i + 1; break; }
+      if (String(todosDados[i][0]) === String(idVenda)) { linhaVenda = i + 1; break; }
     }
-    if (linhaVenda === -1) return responseErro("Venda #" + vData.id + " não encontrada.");
+    if (linhaVenda === -1) return responseErro("Venda/Rascunho #" + idVenda + " não encontrada para finalização.");
 
     var itensList = [];
     try { itensList = JSON.parse(todosDados[linhaVenda - 1][13] || '[]'); } catch(e) {}
@@ -1008,7 +1030,7 @@ function handleFinalizarPendente(data) {
     var pgto       = vData.formaPagamento || todosDados[linhaVenda - 1][9] || '';
 
     sheetVendas.getRange(linhaVenda, 10).setValue(pgto);
-    sheetVendas.getRange(linhaVenda, 12).setValue('Concluda');
+    sheetVendas.getRange(linhaVenda, 12).setValue('Concluída');
     sheetVendas.getRange(linhaVenda, 13).setValue(vencimento);
 
     if (sheetFin) {
@@ -1016,11 +1038,11 @@ function handleFinalizarPendente(data) {
       var nextIdFin = lastRowFin > 1 ? (parseInt(sheetFin.getRange(lastRowFin, 1).getValue()) || 0) + 1 : 1;
       sheetFin.appendRow([
         nextIdFin,
-        'Venda #' + vData.id + ' - ' + cliente,
-        total, 'Receber', vencimento, statusFin, 'Venda', vData.id
+        'Venda #' + idVenda + ' - ' + cliente,
+        total, 'Receber', vencimento, statusFin, 'Venda', idVenda
       ]);
     }
-    return responseSucesso("✅ Venda #" + vData.id + " finalizada!");
+    return responseSucesso("✅ Venda #" + idVenda + " finalizada!");
   } catch (e) {
     return responseErro("Erro ao finalizar pendente: " + e.message);
   }
