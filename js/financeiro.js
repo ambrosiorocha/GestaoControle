@@ -180,7 +180,7 @@ async function carregarFinanceiro() {
     try {
         const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'listarLancamentos', spreadsheetId: window.SPREADSHEET_ID })
+            body: JSON.stringify({ action: 'obterFinanceiro', spreadsheetId: window.SPREADSHEET_ID })
         });
         const data = await response.json();
         if (data.status === 'sucesso' && data.dados) {

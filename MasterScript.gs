@@ -45,6 +45,9 @@ function doPost(e) {
       case 'autenticarOperador':
         return handleAutenticarOperador(data);
       
+      case 'registrarMestra':
+        return handleRegistrarMestra(data);
+      
       case 'lancarVenda':
         var resPlano = verificarPermissaoPlano(data.spreadsheetId, 'Vendas');
         if (resPlano.status === 'erro') return responseErro(resPlano.mensagem);
@@ -62,6 +65,9 @@ function doPost(e) {
       case 'listarProdutos':
       case 'obterProdutos':
         return handleObterProdutos(data);
+      
+      case 'obterProdutoPorId':
+        return handleObterProdutoPorId(data);
 
       case 'obterOperadores':
         return handleObterOperadores(data);
@@ -86,6 +92,42 @@ function doPost(e) {
 
       case 'excluirRascunho':
         return handleExcluirRascunho(data);
+      
+      case 'baixarLancamento':
+        return handleBaixarLancamento(data);
+      
+      case 'salvarFinanceiro':
+        return handleSalvarFinanceiro(data);
+      
+      case 'excluirFinanceiro':
+        return handleExcluirFinanceiro(data);
+
+      case 'salvarCliente':
+        return handleSalvarCliente(data);
+      
+      case 'excluirCliente':
+        return handleExcluirCliente(data);
+      
+      case 'salvarFornecedor':
+        return handleSalvarFornecedor(data);
+      
+      case 'excluirFornecedor':
+        return handleExcluirFornecedor(data);
+      
+      case 'obterFornecedores':
+        return handleObterFornecedores(data);
+      
+      case 'salvarProduto':
+        return handleSalvarProduto(data);
+      
+      case 'excluirProduto':
+        return handleExcluirProduto(data);
+      
+      case 'salvarOperador':
+        return handleSalvarOperador(data);
+      
+      case 'excluirOperador':
+        return handleExcluirOperador(data);
     }
     
   } catch (err) {
@@ -264,6 +306,227 @@ function handleObterDadosRelatorios(data) {
   } catch (e) { return responseErro(e.message); }
 }
 
+function handleBaixarLancamento(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName('Financeiro');
+    if (!sheet || sheet.getLastRow() < 2) return responseErro("Planilha Financeiro não encontrada ou vazia.");
+    
+    var idTarget = data.id || (data.data ? data.data.id : null);
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var colId = headers.indexOf('id');
+    var colStatus = headers.indexOf('status');
+    if (colId === -1 || colStatus === -1) return responseErro("Colunas id/status não encontradas.");
+    
+    var values = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+    for (var i = 0; i < values.length; i++) {
+      if (String(values[i][colId]) === String(idTarget)) {
+        sheet.getRange(i + 2, colStatus + 1).setValue('Pago');
+        return responseSucesso("Lançamento #" + idTarget + " baixado com sucesso!");
+      }
+    }
+    return responseErro("Lançamento não encontrado.");
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleSalvarFinanceiro(data) {
+  return handleSalvarDadosGeral("Financeiro", data);
+}
+
+function handleExcluirFinanceiro(data) {
+  var id = data.id || (data.data ? data.data.id : null);
+  return handleExcluirDadosGeral("Financeiro", data.spreadsheetId, id);
+}
+
+function handleSalvarCliente(data) {
+  return handleSalvarDadosGeral("Clientes", data);
+}
+
+function handleExcluirCliente(data) {
+  var id = data.id || (data.data ? data.data.id : null);
+  return handleExcluirDadosGeral("Clientes", data.spreadsheetId, id);
+}
+
+function handleSalvarFornecedor(data) {
+  return handleSalvarDadosGeral("Fornecedores", data);
+}
+
+function handleExcluirFornecedor(data) {
+  var id = data.id || (data.data ? data.data.id : null);
+  return handleExcluirDadosGeral("Fornecedores", data.spreadsheetId, id);
+}
+
+function handleObterFornecedores(data) {
+  return handleObterDadosGeral(data, "Fornecedores");
+}
+
+function handleSalvarOperador(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName('Configurações');
+    if (!sheet) return responseErro("Aba Configurações não encontrada.");
+    
+    var vData = data.data || data;
+    var nome = String(vData.nome).trim();
+    var nivel = String(vData.nivel || 'Operador').trim();
+    var senha = String(vData.senha || '1234');
+    var plano = String(vData.plano || 'Pro').trim();
+    var permissoes = JSON.stringify(vData.permissoes || { relatorios: true, fiado: true, visaoDono: false });
+    
+    if (sheet.getLastRow() > 1) {
+      var existentes = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues().map(function(r){ return r[0]; });
+      if (existentes.indexOf(nome) > -1) return responseErro("Operador \"" + nome + "\" já existe.");
+    }
+    sheet.appendRow([nome, nivel, senha, plano, permissoes]);
+    return responseSucesso("Operador \"" + nome + "\" adicionado!");
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleExcluirOperador(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName('Configurações');
+    if (!sheet || sheet.getLastRow() < 2) return responseErro("Nenhum operador cadastrado.");
+    
+    var vData = data.data || data;
+    var nome = String(vData.nome || vData.id).trim();
+    var dados = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+    for (var i = 0; i < dados.length; i++) {
+      if (String(dados[i][0]).trim() === nome) {
+        sheet.deleteRow(i + 2);
+        return responseSucesso("Operador removido.");
+      }
+    }
+    return responseErro("Operador não encontrado.");
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleSalvarProduto(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName("Produtos");
+    if (!sheet) return responseErro("Aba Produtos não encontrada.");
+    
+    var vData = data.data || data;
+    var idProduto = vData.idProduto || vData.id;
+    
+    var valoresProduto = [
+      vData.nome,
+      vData.unidadeVenda,
+      parseFloat(vData.precoCusto) || 0,
+      parseFloat(vData.margemPct)  || 0,
+      parseFloat(vData.margemRS)   || 0,
+      parseFloat(vData.preco)      || 0,
+      parseFloat(vData.quantidade) || 0,
+      vData.descricao || ''
+    ];
+
+    if (idProduto) {
+      var dadosSheet = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+      var linha = dadosSheet.findIndex(function(row) { return row[0] == idProduto; });
+      if (linha > -1) {
+        sheet.getRange(linha + 2, 2, 1, valoresProduto.length).setValues([valoresProduto]);
+        return responseSucesso("Produto \"" + vData.nome + "\" atualizado!");
+      }
+      return responseErro("Produto não encontrado para atualização.");
+    } else {
+      var ultimaLinha = sheet.getLastRow();
+      var novoId = (ultimaLinha > 1) ? (parseInt(sheet.getRange(ultimaLinha, 1).getValue()) || 0) + 1 : 1;
+      sheet.appendRow([novoId, ...valoresProduto]);
+      return responseSucesso("Produto \"" + vData.nome + "\" cadastrado!");
+    }
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleExcluirProduto(data) {
+  var id = data.id || (data.data ? data.data.id : null);
+  return handleExcluirDadosGeral("Produtos", data.spreadsheetId, id);
+}
+
+/**
+ * HELPERS GENÉRICOS DE CRUD
+ */
+function handleObterDadosGeral(data, nomePlanilha) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName(nomePlanilha);
+    if (!sheet || sheet.getLastRow() < 2) {
+      return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: [], rows: [] } });
+    }
+    var values = sheet.getDataRange().getValues();
+    var headers = values.shift();
+    return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: headers, rows: values } });
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleSalvarDadosGeral(nomePlanilha, data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName(nomePlanilha);
+    if (!sheet) return responseErro("Aba " + nomePlanilha + " não encontrada.");
+    
+    var vData = data.data || data;
+    var id = vData.id;
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var rowValues = headers.map(header => {
+      var val = vData[header];
+      return val !== undefined ? val : "";
+    });
+
+    if (id) {
+      var dataIds = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+      var rowIndex = dataIds.findIndex(function(row) { return row[0] == id; });
+      if (rowIndex > -1) {
+        sheet.getRange(rowIndex + 2, 1, 1, headers.length).setValues([rowValues]);
+        return responseSucesso("Registro atualizado com sucesso!");
+      }
+      return responseErro("Registro não encontrado para atualização.");
+    } else {
+      var lastRow = sheet.getLastRow();
+      var nextId = lastRow > 1 ? (parseInt(sheet.getRange(lastRow, 1).getValue()) || 0) + 1 : 1;
+      rowValues[0] = nextId; 
+      sheet.appendRow(rowValues);
+      return responseSucesso("Registro cadastrado com sucesso!");
+    }
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleExcluirDadosGeral(nomePlanilha, spreadsheetId, id) {
+  try {
+    var ss = SpreadsheetApp.openById(spreadsheetId);
+    var sheet = ss.getSheetByName(nomePlanilha);
+    if (!sheet || sheet.getLastRow() < 2) return responseErro("Aba " + nomePlanilha + " não encontrada ou vazia.");
+    
+    var dadosIds = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+    var linha = dadosIds.findIndex(function(row) { return row[0] == id; });
+    if (linha > -1) {
+      sheet.deleteRow(linha + 2);
+      return responseSucesso("Registro excluído com sucesso!");
+    }
+    return responseErro("Registro não encontrado para exclusão.");
+  } catch (e) { return responseErro(e.message); }
+}
+
+function handleObterProdutoPorId(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName("Produtos");
+    if (!sheet) return responseErro("Aba Produtos não encontrada.");
+    
+    var id = data.id || (data.data ? data.data.id : null);
+    var values = sheet.getDataRange().getValues();
+    var headers = values[0];
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][0]) === String(id)) {
+        var obj = {};
+        headers.forEach((h, idx) => obj[h] = values[i][idx]);
+        return responseSucessoMsg("Sucesso", { dados: obj });
+      }
+    }
+    return responseErro("Produto não encontrado.");
+  } catch (e) { return responseErro(e.message); }
+}
+
 function responseSucessoMsg(msg, extra) {
   var res = { status: "sucesso", mensagem: msg };
   if (extra) {
@@ -308,6 +571,14 @@ function handleVerificarPrimeiroAcesso(data) {
 function responseJson(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleRegistrarMestra(data) {
+  try {
+    // Apenas atualiza a Mestra com o sinal do site para auditoria
+    upsertMasterClient(data, "Atualização via Login/Acesso");
+    return responseSucesso("Registro atualizado na Mestra.");
+  } catch (e) { return responseErro(e.message); }
 }
 
 function handlePrimeiroAcesso(data) {

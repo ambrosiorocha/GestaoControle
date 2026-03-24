@@ -115,7 +115,7 @@ async function carregarProdutos(forceSync = false) {
     try {
         const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'listarProdutos', spreadsheetId: window.SPREADSHEET_ID })
+            body: JSON.stringify({ action: 'obterProdutos', spreadsheetId: window.SPREADSHEET_ID })
         });
         const data = await response.json();
 

@@ -82,7 +82,7 @@ async function carregarClientes(forceSync = false) {
     try {
         const response = await fetch(window.MASTER_WEBHOOK_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'listarClientes', spreadsheetId: window.SPREADSHEET_ID })
+            body: JSON.stringify({ action: 'obterClientes', spreadsheetId: window.SPREADSHEET_ID })
         });
         const data = await response.json();
 

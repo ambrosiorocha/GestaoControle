@@ -762,7 +762,15 @@ async function confirmarEstorno(id) {
 
 async function excluirVenda(id) {
     if (!(await CustomModal.confirm(`Excluir o rascunho pendente #${id}?\nNão há estoque nem financeiro associados a este rascunho.`, 'Excluir', 'Cancelar'))) return;
-    exibirStatus({ status: 'error', mensagem: 'Função de exclusão de rascunho em desenvolvimento.' });
+    try {
+        const res = await fetch(window.MASTER_WEBHOOK_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'excluirRascunho', data: { id }, spreadsheetId: window.SPREADSHEET_ID })
+        });
+        const data = await res.json();
+        exibirStatus(data);
+        if (data.status === 'sucesso') await carregarHistoricoVendas();
+    } catch (e) { exibirStatus({ status: 'error', mensagem: 'Erro ao excluir rascunho: ' + e.message }); }
 }
 
 // Reimprimir cupom de uma venda do histórico
