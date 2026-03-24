@@ -128,6 +128,12 @@ function doPost(e) {
       
       case 'excluirOperador':
         return handleExcluirOperador(data);
+
+      case 'obterProdutosUnicos':
+        return handleObterProdutosUnicos(data);
+
+      case 'obterDashboard':
+        return handleObterDashboard(data);
     }
     
   } catch (err) {
@@ -1065,6 +1071,19 @@ function handleObterProdutos(data) {
   } catch (e) { return responseErro(e.message); }
 }
 
+function handleObterProdutosUnicos(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheet = ss.getSheetByName("Produtos");
+    if (!sheet || sheet.getLastRow() < 2) return responseSucessoMsg("Sucesso", { dados: [] });
+    
+    // Supondo que a coluna 2 seja o Nome do Produto (conforme Code.gs)
+    var dados = sheet.getRange(2, 2, sheet.getLastRow() - 1, 1).getValues();
+    var unicos = Array.from(new Set(dados.flat().map(v => String(v).trim()))).filter(v => v !== "");
+    return responseSucessoMsg("Sucesso", { dados: unicos.sort() });
+  } catch (e) { return responseErro("Erro ao obter produtos únicos: " + e.message); }
+}
+
 function handleObterOperadores(data) {
   try {
     var ss = SpreadsheetApp.openById(data.spreadsheetId);
@@ -1128,6 +1147,11 @@ function handleObterVendas(data) {
 
     return responseSucessoMsg("Sucesso", { dados: { compact: true, headers: headers, rows: rows } });
   } catch (e) { return responseErro(e.message); }
+}
+
+function handleObterDashboard(data) {
+  // O dashboard utiliza os mesmos dados das vendas (último ano)
+  return handleObterVendas(data);
 }
 
 /**
