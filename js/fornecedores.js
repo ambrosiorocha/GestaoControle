@@ -11,8 +11,62 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     document.getElementById('pesquisa').addEventListener('input', filtrarFornecedores);
 
+    var btnSync = document.getElementById('btnSincronizar');
+    if (btnSync) {
+        btnSync.addEventListener('click', function (e) {
+            execWithSpinner(e.target, async () => { await carregarFornecedores(); });
+        });
+    }
+
+    // Evento para fechar modal com tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') fecharSlideoverFornecedor();
+    });
+
     carregarFornecedores();
 });
+
+// ================================
+// CONTROLE DO SLIDE-OVER (GAVETA)
+// ================================
+function abrirSlideoverFornecedor() {
+    const overlay = document.getElementById('slideoverFornecedor');
+    const container = document.getElementById('slideoverContainerFornecedor');
+    
+    // Se abrir sem ID, é um "Novo"
+    const id = document.getElementById('idFornecedor').value;
+    if (!id) {
+        document.getElementById('fornecedorForm').reset();
+        document.getElementById('slideoverLabelFornecedor').textContent = 'Novo Fornecedor';
+    } else {
+        document.getElementById('slideoverLabelFornecedor').textContent = 'Editar Fornecedor';
+    }
+
+    overlay.classList.add('open');
+    container.classList.add('open');
+    document.body.classList.add('slideover-open');
+}
+
+function fecharSlideoverFornecedor() {
+    const overlay = document.getElementById('slideoverFornecedor');
+    const container = document.getElementById('slideoverContainerFornecedor');
+    
+    overlay.classList.remove('open');
+    container.classList.remove('open');
+    document.body.classList.remove('slideover-open');
+    
+    // Limpar formulário e ID ao fechar
+    setTimeout(() => {
+        document.getElementById('fornecedorForm').reset();
+        document.getElementById('idFornecedor').value = '';
+    }, 300);
+}
+
+function validarFechamentoSlideoverFornecedor(e) {
+    if (e.target.id === 'slideoverFornecedor') {
+        fecharSlideoverFornecedor();
+    }
+}
 
 function exibirStatus(resposta) {
     var statusMessage = document.getElementById('statusMessage');
@@ -51,6 +105,7 @@ async function salvarFornecedor() {
         if (data.status === 'sucesso') {
             document.getElementById('fornecedorForm').reset();
             document.getElementById('idFornecedor').value = '';
+            fecharSlideoverFornecedor();
             await carregarFornecedores();
         }
     } catch (error) {
@@ -131,7 +186,8 @@ function editarFornecedor(id) {
         document.getElementById('email').value = f.email || '';
         document.getElementById('categoria').value = f.produto || '';
         exibirStatus({ status: 'success', mensagem: 'Campos preenchidos para edição.' });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        abrirSlideoverFornecedor();
     }
 }
 

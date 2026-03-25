@@ -79,8 +79,81 @@ document.addEventListener('DOMContentLoaded', function () {
         const filtroArea = document.getElementById('filtroTipo');
         if (filtroArea) filtroArea.style.display = 'none';
     }
+    
+    // Eventos de teclado para fechar gavetas e modais
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modalResumo = document.getElementById('modalResumoFinanceiro');
+            if (modalResumo && modalResumo.style.display === 'flex') {
+                modalResumo.style.display = 'none';
+            } else {
+                fecharSlideoverFinanceiro();
+            }
+        }
+    });
+
     carregarFinanceiro();
 });
+
+// ================================
+// CONTROLE DO SLIDE-OVER E MODAIS
+// ================================
+function abrirSlideoverFinanceiro() {
+    const overlay = document.getElementById('slideoverFinanceiro');
+    const container = document.getElementById('slideoverContainerFinanceiro');
+    
+    // Se abrir sem ID, é um "Novo"
+    const id = document.getElementById('idFinanceiro').value;
+    if (!id) {
+        document.getElementById('financeiroForm').reset();
+        document.getElementById('slideoverLabelFinanceiro').textContent = 'Novo Lançamento';
+        document.getElementById('vencimento').value = new Date().toISOString().split('T')[0];
+        if (Auth.isPlanBasico()) {
+            document.getElementById('caixa').value = 'Dinheiro';
+            document.getElementById('status').value = 'Pago';
+        }
+    } else {
+        document.getElementById('slideoverLabelFinanceiro').textContent = 'Editar Lançamento';
+    }
+
+    overlay.classList.add('open');
+    container.classList.add('open');
+    document.body.classList.add('slideover-open');
+}
+
+function fecharSlideoverFinanceiro() {
+    const overlay = document.getElementById('slideoverFinanceiro');
+    const container = document.getElementById('slideoverContainerFinanceiro');
+    
+    overlay.classList.remove('open');
+    container.classList.remove('open');
+    document.body.classList.remove('slideover-open');
+    
+    // Limpar formulário e ID ao fechar com delay de animação
+    setTimeout(() => {
+        document.getElementById('financeiroForm').reset();
+        document.getElementById('idFinanceiro').value = '';
+        document.getElementById('vencimento').value = new Date().toISOString().split('T')[0];
+        if (Auth.isPlanBasico()) {
+            document.getElementById('caixa').value = 'Dinheiro';
+            document.getElementById('status').value = 'Pago';
+        }
+    }, 300);
+}
+
+function validarFechamentoSlideoverFinanceiro(e) {
+    if (e.target.id === 'slideoverFinanceiro') {
+        const modalResumo = document.getElementById('modalResumoFinanceiro');
+        if (modalResumo && modalResumo.style.display === 'flex') {
+            return; // Se o modal resumo estiver aberto sobre o slide-over, não fecha o slide-over por fora
+        }
+        fecharSlideoverFinanceiro();
+    }
+}
+
+function fecharModalResumoFinanceiro() {
+    document.getElementById('modalResumoFinanceiro').style.display = 'none';
+}
 
 function exibirStatus(resposta) {
     var statusMessage = document.getElementById('statusMessage');
@@ -166,6 +239,7 @@ async function salvarFinanceiro() {
             }
 
             document.getElementById('modalResumoFinanceiro').style.display = 'none';
+            fecharSlideoverFinanceiro();
             await carregarFinanceiro();
         }
     } catch (error) {
@@ -424,7 +498,7 @@ function editarFinanceiro(id) {
         }
 
         exibirStatus({ status: 'success', mensagem: 'Registro carregado para edição.' });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        abrirSlideoverFinanceiro();
     }
 }
 

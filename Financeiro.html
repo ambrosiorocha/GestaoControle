@@ -101,84 +101,37 @@
 
             <!-- ABA 1: LANÇAMENTOS GERAIS (Ativa por padrão) -->
             <div id="tabLancamentos" style="display:block;">
-                <div id="kpiGridFinanceiro" class="kpi-grid mb-8">
-                    <div class="kpi-card bg-red-50">
-                        <h4 class="text-red-700">A Pagar (Pendente)</h4>
-                        <p id="totalPagar" class="text-red-600 font-bold">R$ 0,00</p>
+                
+                <div class="flex flex-col md:flex-row justify-between mb-6 gap-4">
+                    <div id="kpiGridFinanceiro" class="kpi-grid w-full md:w-3/4 mb-0">
+                        <div class="kpi-card bg-red-50">
+                            <h4 class="text-red-700">A Pagar (Pendente)</h4>
+                            <p id="totalPagar" class="text-red-600 font-bold">R$ 0,00</p>
+                        </div>
+                        <div class="kpi-card bg-green-50">
+                            <h4 class="text-green-700">A Receber (Pendente)</h4>
+                            <p id="totalReceber" class="text-green-600 font-bold">R$ 0,00</p>
+                        </div>
+                        <div class="kpi-card bg-blue-50">
+                            <h4 class="text-blue-700">Saldo Pendente</h4>
+                            <p id="saldoPendencias" class="text-blue-600 font-bold">R$ 0,00</p>
+                        </div>
                     </div>
-                    <div class="kpi-card bg-green-50">
-                        <h4 class="text-green-700">A Receber (Pendente)</h4>
-                        <p id="totalReceber" class="text-green-600 font-bold">R$ 0,00</p>
-                    </div>
-                    <div class="kpi-card bg-blue-50">
-                        <h4 class="text-blue-700">Saldo Pendente</h4>
-                        <p id="saldoPendencias" class="text-blue-600 font-bold">R$ 0,00</p>
+                    
+                    <div class="w-full md:w-1/4 flex items-center justify-end">
+                        <button onclick="abrirSlideoverFinanceiro()" class="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all transform hover:-translate-y-0.5 w-full md:w-auto h-full max-h-[100px]" style="border:none;">
+                            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Novo Lançamento
+                        </button>
                     </div>
                 </div>
 
-                <form id="financeiroForm" class="mb-10">
-                    <input type="hidden" id="idFinanceiro" value="">
+                <!-- O formulário antes existia aqui e foi movido para o modal -->
+                <div id="formContainerHelper" style="display:none;">
+                     <!-- Aviso injetado pelo plano básico virá para cá ou para o slide-over -->
+                     <form id="financeiroFormDummy"></form>
+                </div>
 
-                    <div class="form-group">
-                        <label for="descricao">Descrição da Conta</label>
-                        <input type="text" id="descricao" placeholder="Ex: Pagamento aluguel, Recebimento venda #12"
-                            required>
-                    </div>
-
-                    <div class="form-grid-container">
-                        <div class="form-group">
-                            <label for="valor">Valor (R$)</label>
-                            <input type="text" id="valor" required
-                                class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 moeda-input">
-                        </div>
-                        <div class="form-group">
-                            <label for="tipo">Tipo</label>
-                            <select id="tipo" required class="w-full p-2 border border-gray-300 rounded">
-                                <option value="Pagar">A Pagar (Despesa)</option>
-                                <option value="Receber">A Receber (Receita)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="vencimento">Data de Vencimento</label>
-                            <input type="date" id="vencimento" required>
-                        </div>
-                    </div>
-
-                    <div class="form-grid-container">
-                        <div class="form-group">
-                            <label for="status">Status</label>
-                            <select id="status" required class="w-full p-2 border border-gray-300 rounded">
-                                <option value="Pendente">Pendente</option>
-                                <option value="Pago">Quitado (Pago/Recebido)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="categoria">Categoria</label>
-                            <select id="categoria" required class="w-full p-2 border border-gray-300 rounded">
-                                <option value="">Selecione...</option>
-                                <option value="Venda">Venda</option>
-                                <option value="Compra">Compra</option>
-                                <option value="Operacional">Operacional</option>
-                                <option value="Fornecedor">Fornecedor</option>
-                                <option value="Salário">Salário</option>
-                                <option value="Aluguel">Aluguel</option>
-                                <option value="Impostos">Impostos</option>
-                                <option value="Outros">Outros</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-grid-container" style="grid-template-columns: 1fr;">
-                        <div class="form-group">
-                            <label for="caixa">Caixa / Banco</label>
-                            <select id="caixa" required class="w-full p-2 border border-gray-300 rounded">
-                                <!-- Serão preenchidos pelo JS de acordo com o plano -->
-                            </select>
-                        </div>
-                    </div>
-
-                    <button type="button" id="btnPréSalvar" class="btn">Revisar e Registrar</button>
-                </form>
 
                 <div id="statusMessage"></div>
 
@@ -287,7 +240,7 @@
                 </div>
             </div><!-- FIM DA ABA EXTRATOS -->
 
-            <!-- Modal de Resumo do Financeiro -->
+            <!-- Modal de Resumo do Financeiro (Mantém-se igual para confirmar a transação) -->
             <div id="modalResumoFinanceiro"
                 style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; align-items:center; justify-content:center;">
                 <div
@@ -326,11 +279,11 @@
 
                     <div style="display:flex; gap:0.5rem;">
                         <button type="button"
-                            onclick="document.getElementById('modalResumoFinanceiro').style.display='none'"
-                            style="flex:1; padding:0.8rem; background:#f1f5f9; color:#475569; border:none; border-radius:0.5rem; font-weight:600; cursor:pointer;">Cancelar</button>
+                            onclick="fecharModalResumoFinanceiro()"
+                            style="flex:1; padding:0.8rem; background:#f1f5f9; color:#475569; border:none; border-radius:0.5rem; font-weight:600; cursor:pointer;">Voltar à Gaveta</button>
                         <button type="button" id="btnConfirmarSalvar"
                             style="flex:2; padding:0.8rem; background:#16a34a; color:white; border:none; border-radius:0.5rem; font-weight:600; cursor:pointer; display:flex; justify-content:center; align-items:center; gap:0.5rem;">
-                            Confirmar e Salvar</button>
+                            Salvar</button>
                     </div>
                 </div>
             </div>
@@ -338,6 +291,95 @@
 
         </div>
     </main>
+
+    <!-- ===== GAVETA LATERAL (SLIDE-OVER) FINANCEIRO ===== -->
+    <div id="slideoverFinanceiro" class="slideover-overlay" onclick="validarFechamentoSlideoverFinanceiro(event)">
+        <div class="slideover-container bg-slate-50" id="slideoverContainerFinanceiro">
+            <!-- Cabeçalho -->
+            <div class="slideover-header shadow-sm">
+                <h2>💰 <span id="slideoverLabelFinanceiro">Novo Lançamento</span></h2>
+                <button class="slideover-close-btn" onclick="fecharSlideoverFinanceiro()" title="Fechar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <!-- Corpo do Slide-over -->
+            <div class="slideover-body p-6">
+                <form id="financeiroForm" class="flex flex-col h-full">
+                    <input type="hidden" id="idFinanceiro" value="">
+
+                    <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm mb-5">
+                        <h4 class="text-sm font-bold text-gray-700 mb-4 border-b pb-2">Detalhes da Transação</h4>
+                        
+                        <div class="space-y-4">
+                            <div class="form-group mb-0">
+                                <label for="descricao" class="block text-sm font-medium text-gray-700 mb-1">Descrição do Lançamento *</label>
+                                <input type="text" id="descricao" placeholder="Ex: Pagamento aluguel, Recebimento venda #12" class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm" required>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="form-group mb-0 relative">
+                                    <label for="valor" class="block text-sm font-medium text-gray-700 mb-1">Valor (R$) *</label>
+                                    <input type="text" id="valor" required class="w-full p-2 pl-8 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm font-semibold max-w-full m-0 moeda-input">
+                                    <span class="absolute left-3 top-[-3px] text-gray-500 text-sm" style="margin-top:28px;">R$</span>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label for="vencimento" class="block text-sm font-medium text-gray-700 mb-1">Data *</label>
+                                    <input type="date" id="vencimento" class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm" required>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="form-group mb-0">
+                                    <label for="tipo" class="block text-sm font-medium text-gray-700 mb-1">Natureza *</label>
+                                    <select id="tipo" required class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50 font-medium">
+                                        <option value="Pagar">A Pagar (Despesa)</option>
+                                        <option value="Receber">A Receber (Receita)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status de Pagamento *</label>
+                                    <select id="status" required class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm bg-gray-50 font-medium">
+                                        <option value="Pago">Quitado (Pago/Recebido)</option>
+                                        <option value="Pendente">Pendente / Agendado</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="form-group mb-0">
+                                    <label for="categoria" class="block text-sm font-medium text-gray-700 mb-1">Categoria *</label>
+                                    <select id="categoria" required class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                        <option value="">Selecione...</option>
+                                        <option value="Venda">Venda</option>
+                                        <option value="Compra">Compra</option>
+                                        <option value="Operacional">Operacional</option>
+                                        <option value="Fornecedor">Fornecedor</option>
+                                        <option value="Salário">Salário</option>
+                                        <option value="Aluguel">Aluguel</option>
+                                        <option value="Impostos">Impostos</option>
+                                        <option value="Outros">Outros</option>
+                                    </select>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label for="caixa" class="block text-sm font-medium text-gray-700 mb-1">Conta Caixa *</label>
+                                    <select id="caixa" required class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                        <!-- Preenchido via JS -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-auto pt-6 border-t border-gray-200" id="btnSalvarContainer">
+                        <button type="button" id="btnPréSalvar" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors text-[0.95rem]">
+                            📋 Revisar e Concluir
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script src="js/config.js?v=1772539452270"></script>
     <script src="js/auth.js?v=1772539452270"></script>
