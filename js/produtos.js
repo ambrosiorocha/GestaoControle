@@ -24,8 +24,56 @@ document.addEventListener('DOMContentLoaded', function () {
         aplicarGatePlanBasico();
     }
 
+    // Evento para fechar modal com tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') fecharSlideoverProduto();
+    });
+
     carregarProdutos();
 });
+
+// ================================
+// CONTROLE DO SLIDE-OVER (GAVETA)
+// ================================
+function abrirSlideoverProduto() {
+    const overlay = document.getElementById('slideoverProduto');
+    const container = document.getElementById('slideoverContainerProduto');
+    
+    // Se abrir sem ID, é um "Novo"
+    const id = document.getElementById('idProduto').value;
+    if (!id) {
+        document.getElementById('produtoForm').reset();
+        document.getElementById('slideoverLabelProduto').textContent = 'Novo Produto';
+    } else {
+        document.getElementById('slideoverLabelProduto').textContent = 'Editar Produto';
+    }
+
+    overlay.classList.add('open');
+    container.classList.add('open');
+    document.body.classList.add('slideover-open');
+}
+
+function fecharSlideoverProduto() {
+    const overlay = document.getElementById('slideoverProduto');
+    const container = document.getElementById('slideoverContainerProduto');
+    
+    overlay.classList.remove('open');
+    container.classList.remove('open');
+    document.body.classList.remove('slideover-open');
+    
+    // Limpar formulário e ID ao fechar
+    setTimeout(() => {
+        document.getElementById('produtoForm').reset();
+        document.getElementById('idProduto').value = '';
+    }, 300);
+}
+
+function validarFechamentoSlideoverProduto(e) {
+    if (e.target.id === 'slideoverProduto') {
+        fecharSlideoverProduto();
+    }
+}
+
 
 function aplicarGatePlanBasico() {
     // Oculta bloco de custo/margem e mostra cadeado
@@ -90,6 +138,7 @@ async function salvarProduto() {
         if (data.status === 'sucesso') {
             document.getElementById('produtoForm').reset();
             document.getElementById('idProduto').value = '';
+            fecharSlideoverProduto();
             await carregarProdutos(true);
         }
 
@@ -219,8 +268,8 @@ async function editarProduto(id) {
             document.getElementById('quantidade').value = parseFloat(produto.Quantidade) || 0;
             document.getElementById('descricao').value = produto.Descrição || '';
             exibirStatus({ status: 'success', mensagem: 'Campos preenchidos. Agora você pode editar.' });
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-
+            
+            abrirSlideoverProduto();
         } else {
             exibirStatus({ status: 'error', mensagem: 'Produto não encontrado para edição.' });
         }

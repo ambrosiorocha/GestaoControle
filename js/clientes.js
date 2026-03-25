@@ -18,8 +18,56 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // Evento para fechar modal com tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') fecharSlideoverCliente();
+    });
+
     carregarClientes();
 });
+
+// ================================
+// CONTROLE DO SLIDE-OVER (GAVETA)
+// ================================
+function abrirSlideoverCliente() {
+    const overlay = document.getElementById('slideoverCliente');
+    const container = document.getElementById('slideoverContainerCliente');
+    
+    // Se abrir sem ID, é um "Novo"
+    const id = document.getElementById('idCliente').value;
+    if (!id) {
+        document.getElementById('clienteForm').reset();
+        document.getElementById('slideoverLabelCliente').textContent = 'Novo Cliente';
+    } else {
+        document.getElementById('slideoverLabelCliente').textContent = 'Editar Cliente';
+    }
+
+    overlay.classList.add('open');
+    container.classList.add('open');
+    document.body.classList.add('slideover-open');
+}
+
+function fecharSlideoverCliente() {
+    const overlay = document.getElementById('slideoverCliente');
+    const container = document.getElementById('slideoverContainerCliente');
+    
+    overlay.classList.remove('open');
+    container.classList.remove('open');
+    document.body.classList.remove('slideover-open');
+    
+    // Limpar formulário e ID ao fechar
+    setTimeout(() => {
+        document.getElementById('clienteForm').reset();
+        document.getElementById('idCliente').value = '';
+    }, 300);
+}
+
+function validarFechamentoSlideoverCliente(e) {
+    if (e.target.id === 'slideoverCliente') {
+        fecharSlideoverCliente();
+    }
+}
+
 
 function exibirStatus(resposta) {
     var statusMessage = document.getElementById('statusMessage');
@@ -58,6 +106,7 @@ async function salvarCliente() {
         if (data.status === 'sucesso') {
             document.getElementById('clienteForm').reset();
             document.getElementById('idCliente').value = '';
+            fecharSlideoverCliente();
             await carregarClientes(true); // Força sincronização para atualizar cache
         }
     } catch (error) {
@@ -157,7 +206,8 @@ function editarCliente(id) {
         document.getElementById('email').value = cliente.email || '';
         document.getElementById('endereco').value = cliente.endereco || '';
         exibirStatus({ status: 'success', mensagem: 'Campos preenchidos para edição.' });
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        abrirSlideoverCliente();
     }
 }
 

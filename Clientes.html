@@ -23,67 +23,38 @@
 <body>
 
     <main class="main-content p-4 md:p-8 overflow-y-auto">
-        <div class="container">
-            <div class="flex justify-between items-center mb-6">
-                <h2>👥 Gerenciar Clientes</h2>
-            </div>
-
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-md mb-6 mx-2 md:mx-0">
-                <h3 class="text-slate-800 font-bold text-lg mb-4 flex items-center border-l-4 border-blue-600 pl-3">Novo
-                    Cliente</h3>
-                <form id="clienteForm">
-                    <input type="hidden" id="idCliente" value="">
-
-                    <div class="form-group">
-                        <label for="nome" class="block text-sm font-medium text-gray-700 mb-1">Nome Completo / Razão
-                            Social</label>
-                        <input type="text" id="nome"
-                            class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500"
-                            required>
-                    </div>
-
-                    <div class="form-grid-container">
-                        <div class="form-group">
-                            <label for="cpfCnpj" class="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ</label>
-                            <input type="text" id="cpfCnpj"
-                                class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div class="form-group">
-                            <label for="telefone" class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
-                            <input type="text" id="telefone"
-                                class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div class="form-group">
-                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-                            <input type="email" id="email"
-                                class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="endereco" class="block text-sm font-medium text-gray-700 mb-1">Endereço
-                            Completo</label>
-                        <input type="text" id="endereco"
-                            class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-
-                    <button type="submit" class="btn mt-2">Salvar Cliente</button>
-                </form>
-            </div>
-
-            <div id="statusMessage"></div>
-
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-md mb-6 mx-2 md:mx-0">
-                <h3 class="text-slate-800 font-bold text-lg mb-4 flex items-center border-l-4 border-blue-600 pl-3">
-                    Clientes Cadastrados</h3>
-                <div class="form-group mb-4">
-                    <label for="pesquisa" class="block text-sm font-medium text-gray-700 mb-1">Pesquisar Cliente</label>
-                    <input type="text" id="pesquisa" placeholder="Nome ou CPF/CNPJ..."
-                        class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
+        <div class="container" style="max-width: 1200px;">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div>
+                    <h2 style="margin:0;text-align:left;display:flex;align-items:center;gap:8px;">
+                        👥 Gerenciar Clientes
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">Listagem e cadastro de clientes e consumidores.</p>
                 </div>
+                <!-- Botão de Destaque -->
+                <button onclick="abrirSlideoverCliente()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-all transform hover:-translate-y-0.5" style="border:none;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Novo Cliente
+                </button>
+            </div>
+
+            <!-- Tabela Principal (Data-First) -->
+            <div class="bg-white p-4 md:p-6 rounded-xl border border-gray-100 shadow-md mb-6 mx-2 md:mx-0">
+                <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
+                    <h3 class="text-slate-800 font-bold text-lg flex items-center border-l-4 border-blue-600 pl-3 m-0">
+                        Clientes Cadastrados
+                    </h3>
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <input type="text" id="pesquisa" placeholder="Nome ou CPF/CNPJ..." class="flex-1 md:w-64 p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        <button id="btnSincronizar" class="bg-slate-700 hover:bg-slate-800 text-white font-medium py-2 px-4 rounded transition text-sm">Atualizar</button>
+                    </div>
+                </div>
+
+                <div id="statusMessage" style="margin-bottom:1rem;"></div>
+
                 <div class="overflow-x-auto w-full mb-4">
                     <table class="w-full bg-white border border-gray-200">
-                        <thead class="bg-gray-50">
+                        <thead class="bg-gray-50 text-sm">
                             <tr>
                                 <th>ID</th>
                                 <th>Nome</th>
@@ -94,7 +65,7 @@
                                 <th>Ações</th>
                             </tr>
                         </thead>
-                        <tbody id="listaClientes">
+                        <tbody id="listaClientes" class="text-sm text-gray-700">
                             <tr>
                                 <td colspan="7" class="table-cell p-4 text-center">Carregando clientes...</td>
                             </tr>
@@ -104,6 +75,65 @@
             </div>
         </div>
     </main>
+
+    <!-- ===== GAVETA LATERAL (SLIDE-OVER) CLIENTE ===== -->
+    <div id="slideoverCliente" class="slideover-overlay" onclick="validarFechamentoSlideoverCliente(event)">
+        <div class="slideover-container bg-slate-50" id="slideoverContainerCliente">
+            <!-- Cabeçalho -->
+            <div class="slideover-header shadow-sm">
+                <h2>👥 <span id="slideoverLabelCliente">Novo Cliente</span></h2>
+                <button class="slideover-close-btn" onclick="fecharSlideoverCliente()" title="Fechar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <!-- Corpo do Slide-over -->
+            <div class="slideover-body p-6">
+                <form id="clienteForm" class="flex flex-col h-full">
+                    <input type="hidden" id="idCliente" value="">
+
+                    <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm mb-5">
+                        <h4 class="text-sm font-bold text-gray-700 mb-4 border-b pb-2">Dados do Cliente</h4>
+                        
+                        <div class="space-y-4">
+                            <div class="form-group mb-0">
+                                <label for="nome" class="block text-sm font-medium text-gray-700 mb-1">Nome Completo / Razão Social *</label>
+                                <input type="text" id="nome" class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm" required>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="form-group mb-0">
+                                    <label for="cpfCnpj" class="block text-sm font-medium text-gray-700 mb-1">CPF/CNPJ</label>
+                                    <input type="text" id="cpfCnpj" class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label for="telefone" class="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                                    <input type="text" id="telefone" class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                </div>
+                            </div>
+
+                            <div class="form-group mb-0">
+                                <label for="email" class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                                <input type="email" id="email" class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            </div>
+
+                            <div class="form-group mb-0">
+                                <label for="endereco" class="block text-sm font-medium text-gray-700 mb-1">Endereço Completo</label>
+                                <input type="text" id="endereco" class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-auto pt-6 border-t border-gray-200">
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors text-[0.95rem]">
+                            💾 Salvar Cliente
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 
     <script src="js/config.js?v=1772539452270"></script>
     <script src="js/auth.js?v=1772539452270"></script>

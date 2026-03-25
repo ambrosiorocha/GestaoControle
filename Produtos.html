@@ -23,128 +23,36 @@
 <body>
 
     <main class="main-content p-4 md:p-8 overflow-y-auto">
-        <div class="container">
-            <div class="flex justify-between items-center mb-6">
-                <h2>📦 Gerenciar Produtos</h2>
-            </div>
-
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-md mb-6 mx-2 md:mx-0">
-                <h3 class="text-slate-800 font-bold text-lg mb-4 flex items-center border-l-4 border-blue-600 pl-3">Novo
-                    Produto</h3>
-                <form id="produtoForm">
-                    <input type="hidden" id="idProduto" value="">
-
-                    <!-- Linha 1: Nome + Unidade + Quantidade -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                        <div class="md:col-span-2">
-                            <label for="nome" class="block text-sm font-medium text-gray-700 mb-1">Nome do Produto
-                                *</label>
-                            <input type="text" id="nome" required placeholder="Ex: Mandioca crua"
-                                class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                        <div>
-                            <label for="unidadeVenda" class="block text-sm font-medium text-gray-700 mb-1">Unidade
-                                *</label>
-                            <select id="unidadeVenda" required
-                                class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                                <option value="Un">Un</option>
-                                <option value="Cx">Cx</option>
-                                <option value="Pc">Pc</option>
-                                <option value="kg">kg</option>
-                                <option value="L">L</option>
-                                <option value="Mt">Mt</option>
-                                <option value="Dz">Dz</option>
-                                <option value="Sc">Sc</option>
-                                <option value="pç">pç</option>
-                                <option value="und">und</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="quantidade" class="block text-sm font-medium text-gray-700 mb-1">Estoque
-                                Inicial</label>
-                            <input type="number" id="quantidade" step="0.01" min="0" required placeholder="Ex: 50"
-                                class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                        </div>
-                    </div>
-
-                    <!-- Linha 2: Campos de Preço e Margem (bidirecional) -->
-                    <div id="precificacaoBlock" class="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
-                        <p class="text-xs text-blue-700 font-semibold mb-3">💰 Precificação — preencha Custo + qualquer
-                            campo de margem ou preço</p>
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div>
-                                <label for="precoCusto" class="block text-sm font-medium text-gray-700 mb-1">Preço de
-                                    Custo (R$) *</label>
-                                <input type="text" id="precoCusto" required placeholder="0,00"
-                                    class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 moeda-input"
-                                    oninput="calcularMargem('custo')">
-                            </div>
-                            <div>
-                                <label for="margemPct" class="block text-sm font-medium text-green-700 mb-1">Margem de
-                                    Lucro (%)</label>
-                                <input type="number" id="margemPct" step="0.01" placeholder="Ex: 40"
-                                    class="w-full p-2 border border-green-200 rounded focus:ring-green-500 focus:border-green-500 bg-white"
-                                    oninput="calcularMargem('pct')">
-                            </div>
-                            <div>
-                                <label for="margemRS" class="block text-sm font-medium text-green-700 mb-1">Margem de
-                                    Lucro (R$)</label>
-                                <input type="text" id="margemRS" placeholder="Ex: 4,00"
-                                    class="w-full p-2 border border-green-200 rounded focus:ring-green-500 focus:border-green-500 bg-white moeda-input"
-                                    oninput="calcularMargem('rs')">
-                            </div>
-                            <div>
-                                <label for="preco" class="block text-sm font-medium text-blue-700 mb-1">Preço de Venda
-                                    (R$) *</label>
-                                <input type="text" id="preco" required placeholder="Ex: 14,00"
-                                    class="w-full p-2 border border-blue-300 rounded focus:ring-blue-500 focus:border-blue-500 bg-white font-semibold moeda-input"
-                                    oninput="calcularMargem('preco')">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Plano Básico: Cadeado de Precificação -->
-                    <div id="precificacaoLock" style="display:none;" class="mb-4">
-                        <div
-                            style="background:#f8fafc; border:1.5px dashed #cbd5e1; border-radius:0.5rem; padding:1rem 1.25rem; display:flex; align-items:center; gap:0.75rem;">
-                            <span style="font-size:1.5rem;">&#128274;</span>
-                            <div>
-                                <p style="font-size:0.82rem; font-weight:600; color:#475569; margin:0;">Cálculo de lucro
-                                    disponível no Plano Pro</p>
-                                <p style="font-size:0.75rem; color:#94a3b8; margin:0.15rem 0 0;">Informe apenas o Preço
-                                    de Venda abaixo para cadastrar o produto.</p>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <label for="precoBasico" class="block text-sm font-medium text-blue-700 mb-1">Preço de Venda
-                                (R$) *</label>
-                            <input type="text" id="precoBasico" placeholder="Ex: 14,00"
-                                class="w-full p-2 border border-blue-300 rounded focus:ring-blue-500 focus:border-blue-500 bg-white font-semibold moeda-input">
-                        </div>
-                    </div>
-
-                    <!-- Linha 3: Descrição -->
-                    <div class="mb-4">
-                        <label for="descricao" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                        <input type="text" id="descricao" placeholder="Ex: Atacado e varejo"
-                            class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <button type="submit" class="btn">Cadastrar / Salvar Produto</button>
-                </form>
-            </div>
-
-            <div id="statusMessage"></div>
-
-            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-md mb-6 mx-2 md:mx-0">
-                <h3 class="text-slate-800 font-bold text-lg mb-4 flex items-center border-l-4 border-blue-600 pl-3">
-                    Produtos Cadastrados</h3>
-                <div class="form-group flex gap-2 mb-4">
-                    <input type="text" id="pesquisa" placeholder="Digite para pesquisar..."
-                        class="flex-1 p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500">
-                    <button id="btnSincronizar"
-                        class="btn bg-blue-600 hover:bg-blue-700 m-0 w-auto">Sincronizar</button>
+        <div class="container" style="max-width: 1200px;">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div>
+                    <h2 style="margin:0;text-align:left;display:flex;align-items:center;gap:8px;">
+                        📦 Gerenciar Produtos
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">Listagem e cadastro de estoque e preços.</p>
                 </div>
-                <div class="table-scroll-wrapper" style="max-height: 500px;">
+                <!-- Botão de Destaque -->
+                <button onclick="abrirSlideoverProduto()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-lg shadow-md transition-all transform hover:-translate-y-0.5" style="border:none;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    Novo Produto
+                </button>
+            </div>
+
+            <!-- Tabela de Produtos Cadastrados (Visão Principal) -->
+            <div class="bg-white p-4 md:p-6 rounded-xl border border-gray-100 shadow-md mb-6 mx-2 md:mx-0">
+                <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4">
+                    <h3 class="text-slate-800 font-bold text-lg flex items-center border-l-4 border-blue-600 pl-3 m-0">
+                        Produtos Cadastrados
+                    </h3>
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <input type="text" id="pesquisa" placeholder="Buscar produto..." class="flex-1 md:w-64 p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm">
+                        <button id="btnSincronizar" class="bg-slate-700 hover:bg-slate-800 text-white font-medium py-2 px-4 rounded transition text-sm">Atualizar</button>
+                    </div>
+                </div>
+                
+                <div id="statusMessage" style="margin-bottom:1rem;"></div>
+
+                <div class="table-scroll-wrapper" style="max-height: 600px;">
                     <table class="data-table">
                         <thead>
                             <tr>
@@ -167,7 +75,109 @@
                     </table>
                 </div>
             </div>
+        </div>
     </main>
+
+    <!-- ===== GAVETA LATERAL (SLIDE-OVER) PRODUTO ===== -->
+    <div id="slideoverProduto" class="slideover-overlay" onclick="validarFechamentoSlideoverProduto(event)">
+        <div class="slideover-container bg-slate-50" id="slideoverContainerProduto">
+            <!-- Cabeçalho -->
+            <div class="slideover-header shadow-sm">
+                <h2>📦 <span id="slideoverLabelProduto">Novo Produto</span></h2>
+                <button class="slideover-close-btn" onclick="fecharSlideoverProduto()" title="Fechar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+            
+            <!-- Corpo do Slide-over -->
+            <div class="slideover-body p-6">
+                <form id="produtoForm" class="flex flex-col h-full">
+                    <input type="hidden" id="idProduto" value="">
+
+                    <!-- Bloco: Dados Básicos -->
+                    <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm mb-5">
+                        <h4 class="text-sm font-bold text-gray-700 mb-4 border-b pb-2">Informações Básicas</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label for="nome" class="block text-sm font-medium text-gray-700 mb-1">Nome do Produto *</label>
+                                <input type="text" id="nome" required placeholder="Ex: Mandioca crua" class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            </div>
+                            <div>
+                                <label for="unidadeVenda" class="block text-sm font-medium text-gray-700 mb-1">Unidade *</label>
+                                <select id="unidadeVenda" required class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    <option value="Un">Un - Unidade</option>
+                                    <option value="Cx">Cx - Caixa</option>
+                                    <option value="Pc">Pc - Pacote</option>
+                                    <option value="kg">kg - Quilograma</option>
+                                    <option value="L">L - Litro</option>
+                                    <option value="Mt">Mt - Metro</option>
+                                    <option value="Dz">Dz - Dúzia</option>
+                                    <option value="Sc">Sc - Saco</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="quantidade" class="block text-sm font-medium text-gray-700 mb-1">Estoque</label>
+                                <input type="number" id="quantidade" step="0.01" min="0" placeholder="Ex: 50" class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            </div>
+                            <div class="md:col-span-2 mt-2">
+                                <label for="descricao" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                                <input type="text" id="descricao" placeholder="Opcional. Ex: Fardo com 12 und" class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bloco: Precificação (Pro) -->
+                    <div id="precificacaoBlock" class="bg-blue-50 border border-blue-200 rounded-lg p-5 mb-5 shadow-sm">
+                        <h4 class="text-sm font-bold text-blue-800 mb-1 flex items-center gap-2">
+                            💰 Precificação Inteligente
+                        </h4>
+                        <p class="text-xs text-blue-600 mb-4 opacity-80">Preencha o Custo e defina a margem OU o preço final para calcular automaticamente.</p>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="col-span-2 sm:col-span-1">
+                                <label for="precoCusto" class="block text-sm font-medium text-gray-700 mb-1">Preço Custo (R$) *</label>
+                                <input type="text" id="precoCusto" required placeholder="0,00" class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500 focus:border-blue-500 moeda-input font-medium text-sm" oninput="calcularMargem('custo')">
+                            </div>
+                            <div class="col-span-2 sm:col-span-1">
+                                <label for="preco" class="block text-sm font-medium text-blue-700 mb-1">Preço Venda (R$) *</label>
+                                <input type="text" id="preco" required placeholder="0,00" class="w-full p-2.5 border-2 border-blue-300 rounded focus:ring-blue-600 focus:border-blue-600 bg-white font-bold moeda-input text-blue-800 text-sm shadow-sm" oninput="calcularMargem('preco')">
+                            </div>
+                            <div class="col-span-1">
+                                <label for="margemPct" class="block text-xs font-medium text-green-700 mb-1">Margem (%)</label>
+                                <input type="number" id="margemPct" step="0.01" placeholder="40" class="w-full p-2 border border-green-200 rounded focus:ring-green-500 focus:border-green-500 bg-white text-sm" oninput="calcularMargem('pct')">
+                            </div>
+                            <div class="col-span-1">
+                                <label for="margemRS" class="block text-xs font-medium text-green-700 mb-1">Lucro (R$)</label>
+                                <input type="text" id="margemRS" placeholder="0,00" class="w-full p-2 border border-green-200 rounded focus:ring-green-500 focus:border-green-500 bg-white moeda-input text-sm" oninput="calcularMargem('rs')">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plano Básico: Cadeado -->
+                    <div id="precificacaoLock" style="display:none;" class="mb-5">
+                        <div class="bg-slate-100 border border-slate-300 border-dashed rounded-lg p-4 flex items-center gap-3">
+                            <span class="text-2xl text-slate-400">🔒</span>
+                            <div>
+                                <p class="text-sm font-bold text-slate-700 m-0">Precificação Simplificada</p>
+                                <p class="text-xs text-slate-500 m-0 mt-1">Cálculos de lucro e margem são exclusivos do Plano Pro.</p>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label for="precoBasico" class="block text-sm font-bold text-blue-700 mb-1">Preço de Venda (R$) *</label>
+                            <input type="text" id="precoBasico" placeholder="0,00" class="w-full p-3 border-2 border-blue-300 rounded focus:ring-blue-600 focus:border-blue-600 bg-white font-bold text-lg moeda-input text-blue-800 shadow-sm">
+                        </div>
+                    </div>
+
+                    <div class="mt-auto pt-6 border-t border-gray-200">
+                        <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors text-[0.95rem]">
+                            💾 Salvar Produto
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 
     <script>
         // ── Cálculo Bidirecional de Margem ──────────────────────
