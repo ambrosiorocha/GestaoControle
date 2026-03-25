@@ -46,10 +46,53 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
     tryApplyGate();
+
+    // Evento para fechar modal com tecla ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') fecharSlideoverVenda();
+    });
 });
 
 // ================================
+// CONTROLE DO SLIDE-OVER (GAVETA)
+// ================================
+function abrirSlideoverVenda() {
+    const overlay = document.getElementById('slideoverVenda');
+    const container = document.getElementById('slideoverContainer');
+    
+    // Preparar estado limpo se não estiver editando
+    if (!vendaEditandoId && carrinho.length === 0) {
+        document.getElementById('produto').value = '';
+        document.getElementById('quantidade').value = '';
+        document.getElementById('descontoItemPct').value = '0';
+        document.getElementById('descontoItemReais').value = '0,00';
+        document.getElementById('precoUnitario').value = '';
+        document.getElementById('subtotalItem').textContent = '—';
+    }
+
+    overlay.classList.add('open');
+    container.classList.add('open');
+    document.body.classList.add('slideover-open');
+}
+
+function fecharSlideoverVenda() {
+    const overlay = document.getElementById('slideoverVenda');
+    const container = document.getElementById('slideoverContainer');
+    
+    overlay.classList.remove('open');
+    container.classList.remove('open');
+    document.body.classList.remove('slideover-open');
+}
+
+function validarFechamentoSlideover(e) {
+    if (e.target.id === 'slideoverVenda') {
+        fecharSlideoverVenda();
+    }
+}
+
+// ================================
 // GATING DE PLANO — VENDAS
+
 // ================================
 function aplicarGatePlanVendas() {
     const isBasico = typeof Auth !== 'undefined' && Auth.isPlanBasico();
@@ -303,9 +346,7 @@ function renderizarCarrinho() {
         tr.innerHTML = `
             <td><a href="#" onclick="editarItemCarrinho(${idx}); return false;" style="color:#2563eb; text-decoration:underline;" title="Clique para editar esse item">${item.nome}</a></td>
             <td style="text-align:center;">${item.quantidade}</td>
-            <td>${fmtBRL(item.preco)}</td>
-            <td>${item.desconto > 0 ? item.desconto.toFixed(1) + '%' : '-'}</td>
-            <td><strong>${fmtBRL(item.subtotal)}</strong></td>
+            <td style="text-align:right;">${fmtBRL(item.subtotal)}</td>
             <td><button class="remove-item" onclick="removerItem(${idx})" title="Remover">✕</button></td>
         `;
         tbody.appendChild(tr);
@@ -362,6 +403,7 @@ async function salvarRascunho() {
                 carrinho = [];
                 vendaEditandoId = null;
                 renderizarCarrinho();
+                fecharSlideoverVenda();
                 await carregarHistoricoVendas();
             }
         } catch (e) { exibirStatus({ status: 'error', mensagem: 'Erro: ' + e }); }
@@ -545,6 +587,7 @@ async function confirmarVenda() {
                 carrinho = [];
                 vendaEditandoId = null;
                 renderizarCarrinho();
+                fecharSlideoverVenda(); // Fecha a gaveta
                 CacheAPI.clear('cache_produtos'); // Invalida cache porque baixou estoque
                 await carregarProdutos();
                 await carregarHistoricoVendas();
@@ -690,7 +733,7 @@ function editarRascunho(id, itensJSONEncoded) {
         }));
         vendaEditandoId = id;
         renderizarCarrinho();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        abrirSlideoverVenda();
         exibirStatus({ status: 'success', mensagem: `✏️ Rascunho #${id} carregado. Edite e finalize.` });
     } catch (e) {
         exibirStatus({ status: 'error', mensagem: 'Erro ao carregar rascunho: ' + e.message });
@@ -717,7 +760,7 @@ function reaproveitarVenda(itensJSONEncoded) {
 
         vendaEditandoId = null; // Zera o ID: É uma nova venda
         renderizarCarrinho();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        abrirSlideoverVenda();
         exibirStatus({ status: 'success', mensagem: `🔄 Itens copiados! Edite as quantidades e crie o NOVO pedido.` });
     } catch (e) {
         exibirStatus({ status: 'error', mensagem: 'Erro ao reaproveitar venda: ' + e.message });
@@ -743,7 +786,7 @@ function abrirModalFinalizarPendente(id, itensJSONEncoded) {
         }));
         vendaEditandoId = id;
         renderizarCarrinho();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        abrirSlideoverVenda();
         abrirModal();
     } catch (e) {
         exibirStatus({ status: 'error', mensagem: 'Erro ao carregar itens para finalização: ' + e.message });
