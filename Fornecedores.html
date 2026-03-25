@@ -144,21 +144,33 @@
             </div>
         </div>
     </div>
+
+    <script src="js/config.js?v=1772539452270"></script>
+    <script src="js/auth.js?v=1772539452270"></script>
+    <script src="js/main.js?v=1772539452270"></script>
+    <script src="js/fornecedores.js?v=1772539452270"></script>
+    
     <script>
-        document.getElementById('cnpj').addEventListener('input', e => {
-            let v = e.target.value.replace(/\D/g, '').substring(0, 14);
-            v = v.replace(/^(\d{2})(\d)/, '$1.$2');
-            v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
-            v = v.replace(/\.(\d{3})(\d)/, '.$1/$2');
-            v = v.replace(/(\d{4})(\d)/, '$1-$2');
-            e.target.value = v;
-        });
-        document.getElementById('telefone').addEventListener('input', e => {
-            let v = e.target.value.replace(/\D/g, '').substring(0, 11);
-            v = v.replace(/^(\d{2})(\d)/, '($1) $2');
-            v = v.replace(/(\d{5})(\d)/, '$1-$2');
-            e.target.value = v;
-        });
+        const cnpjField = document.getElementById('cnpj');
+        if (cnpjField) {
+            cnpjField.addEventListener('input', e => {
+                let v = e.target.value.replace(/\D/g, '').substring(0, 14);
+                v = v.replace(/^(\d{2})(\d)/, '$1.$2');
+                v = v.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                v = v.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                v = v.replace(/(\d{4})(\d)/, '$1-$2');
+                e.target.value = v;
+            });
+        }
+        const telefoneField = document.getElementById('telefone');
+        if (telefoneField) {
+            telefoneField.addEventListener('input', e => {
+                let v = e.target.value.replace(/\D/g, '').substring(0, 11);
+                v = v.replace(/^(\d{2})(\d)/, '($1) $2');
+                v = v.replace(/(\d{5})(\d)/, '$1-$2');
+                e.target.value = v;
+            });
+        }
     </script>
 </body>
 
