@@ -156,7 +156,11 @@ function fecharModalResumoFinanceiro() {
 }
 
 function exibirStatus(resposta) {
-    var statusMessage = document.getElementById('statusMessage');
+    const isSlideoverOpen = document.getElementById('slideoverFinanceiro').classList.contains('open');
+    const targetId = isSlideoverOpen ? 'statusMessageSlideoverFinanceiro' : 'statusMessage';
+    var statusMessage = document.getElementById(targetId);
+    if (!statusMessage) statusMessage = document.getElementById('statusMessage');
+
     statusMessage.textContent = resposta.mensagem;
     statusMessage.className = '';
     if (resposta.status) statusMessage.classList.add(resposta.status);

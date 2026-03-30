@@ -117,7 +117,11 @@ function aplicarGatePlanVendas() {
 // STATUS MESSAGE
 // ================================
 function exibirStatus(resposta) {
-    var el = document.getElementById('statusMessage');
+    const isSlideoverOpen = document.getElementById('slideoverVenda').classList.contains('open');
+    const targetId = isSlideoverOpen ? 'statusMessageSlideover' : 'statusMessage';
+    var el = document.getElementById(targetId);
+    if (!el) el = document.getElementById('statusMessage');
+
     el.textContent = resposta.mensagem;
     el.className = '';
     if (resposta.status) el.classList.add(resposta.status);
