@@ -129,11 +129,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 </a>
                 <a href="Relatorios.html" class="nav-link-menu" id="navRelatorios">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h7v9H3z"></path><path d="M14 3h7v5h-7z"></path><path d="M14 12h7v9h-7z"></path><path d="M3 16h7v5h-7z"></path></svg>
-                    <span>Relatórios <span id="navRelatPlanBadge" style="font-size:0.6rem;padding:1px 5px;border-radius:999px;background:rgba(255,255,255,0.15);margin-left:2px;"></span></span>
+                    <span>Relatórios <span id="navRelatPlanBadge"></span></span>
                 </a>
                 <a href="Equipe.html" class="nav-link-menu" data-admin-only id="navEquipe">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                    <span>Gerenciar Equipe <span id="navEquipeLock" style="display:none; font-size:0.8rem; margin-left:4px;">🔒</span></span>
+                    <span>Equipe <span id="navEquipeLock"></span></span>
                 </a>
             </nav>
 
@@ -334,28 +334,42 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             // Atualiza badge do link Relatórios e Equipe com o plano
-            const planBadge = document.getElementById('navRelatPlanBadge');
-            const navEquipeLock = document.getElementById('navEquipeLock');
-            if (Auth.isPlanBasico()) {
-                if (planBadge) {
-                    planBadge.textContent = '🔒';
-                    planBadge.title = 'Requer plano Pro ou Premium';
+            const relBadge = document.getElementById('navRelatPlanBadge');
+            const eqBadge = document.getElementById('navEquipeLock');
+            const plan = Auth.getPlan().toLowerCase();
+            const isBasico = Auth.isPlanBasico();
+
+            const updateSidebarBadge = (el) => {
+                if (!el) return;
+                el.style.display = 'inline-block';
+                el.style.fontSize = '0.62rem';
+                el.style.padding = '1px 5px';
+                el.style.borderRadius = '4px';
+                el.style.marginLeft = '5px';
+                el.style.fontWeight = '700';
+                el.style.verticalAlign = 'middle';
+
+                if (isBasico) {
+                    el.textContent = '🔒';
+                    el.style.background = 'transparent';
+                    el.style.fontSize = '0.75rem';
+                    el.title = 'Bloqueado no Plano Básico';
+                } else if (plan === 'premium') {
+                    el.textContent = '⭐';
+                    el.style.background = 'transparent';
+                    el.style.fontSize = '0.85rem';
+                    el.style.padding = '0';
+                    el.title = 'Premium';
+                } else {
+                    el.textContent = 'Pro';
+                    el.style.background = 'rgba(255,255,255,0.15)';
+                    el.style.color = '#fff';
+                    el.title = 'Plano Pro';
                 }
-                if (navEquipeLock) {
-                    navEquipeLock.style.display = 'inline';
-                }
-            } else {
-                if (planBadge) {
-                    const plan = Auth.getPlan();
-                    if (plan.toLowerCase() === 'premium') {
-                        planBadge.textContent = '⭐';
-                        planBadge.title = 'Premium';
-                    } else {
-                        planBadge.textContent = 'Pro';
-                        planBadge.title = 'Plano Pro';
-                    }
-                }
-            }
+            };
+
+            updateSidebarBadge(relBadge);
+            updateSidebarBadge(eqBadge);
         });
     }
 });
