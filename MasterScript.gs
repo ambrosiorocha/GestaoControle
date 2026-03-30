@@ -582,8 +582,24 @@ function responseJson(obj) {
 
 function handleRegistrarMestra(data) {
   try {
-    // Apenas atualiza a Mestra com o sinal do site para auditoria
+    // 1. Atualizar a Planilha Mestra (Auditoria e Controle Central)
     upsertMasterClient(data, "Atualização via Login/Acesso");
+
+    // 2. Sincronizar com a Planilha do Cliente (Informação Local)
+    var id = data.spreadsheetId;
+    if (id) {
+       try {
+         var clientSS = SpreadsheetApp.openById(id);
+         var configSheet = clientSS.getSheetByName("Configurações");
+         if (configSheet) {
+           var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss");
+           updateHorizontalConfig(configSheet, { "UltimoAcesso": timestamp });
+         }
+       } catch (e) {
+         console.warn("Erro ao atualizar login na planilha do cliente: " + e.message);
+       }
+    }
+
     return responseSucesso("Registro atualizado na Mestra.");
   } catch (e) { return responseErro(e.message); }
 }
@@ -1149,10 +1165,18 @@ function handleObterVendas(data) {
     }
 
     var rows = todosDados.map(function(row) {
+      var dataFmt = row[1];
+      if (dataFmt instanceof Date) {
+        dataFmt = Utilities.formatDate(dataFmt, Session.getScriptTimeZone(), "dd/MM/yyyy");
+      }
+      var vencFmt = row[12];
+      if (vencFmt instanceof Date) {
+        vencFmt = Utilities.formatDate(vencFmt, Session.getScriptTimeZone(), "dd/MM/yyyy");
+      }
       return [
-        row[0], row[1], row[2] || '', row[3] || '',
+        row[0], dataFmt, row[2] || '', row[3] || '',
         row[4] || 0, row[5] || 0, row[6] || 0, row[7] || 0, row[8] || 0,
-        row[9] || '', row[10] || '', row[11] || '', row[12], row[13] || '[]'
+        row[9] || '', row[10] || '', row[11] || '', vencFmt, row[13] || '[]'
       ];
     });
     
