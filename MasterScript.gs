@@ -714,7 +714,8 @@ function upsertMasterClient(data, actionDescription) {
   
   // Mapeamento de chaves do payload para Headers da Mestra
   var mapping = {
-    "nome": "Nome da Empresa / App",
+    "empresa": "Nome da Empresa / App",
+    "nome": "Nome da Empresa / App", // Retrocompatibilidade
     "usuario": "Usuário Admin",
     "whatsapp": "WhatsApp",
     "spreadsheetUrl": "Link da Planilha",

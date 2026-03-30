@@ -151,7 +151,13 @@ window.Auth = (function () {
                     // Dispara o auto-registro na mestra em background
                     fetch(window.MASTER_WEBHOOK_URL, {
                         method: 'POST',
-                        body: JSON.stringify({ acao: 'registrarMestra', spreadsheetId: window.SPREADSHEET_ID, nome: data.nome, empresa: data.empresa, whatsapp: "Ler de Configurações" })
+                        body: JSON.stringify({
+                            acao: 'registrarMestra',
+                            spreadsheetId: window.SPREADSHEET_ID,
+                            usuario: data.nome,
+                            empresa: data.empresa,
+                            whatsapp: data.whatsapp
+                        })
                     }).catch(() => console.log('Registro background pendente.'));
 
                 } else {
@@ -215,11 +221,11 @@ window.Auth = (function () {
             body: JSON.stringify({
                 acao: 'primeiroAcesso',
                 spreadsheetId: window.SPREADSHEET_ID,
-                nomeCompleto,
-                nome: empresa, // Mestra espera 'nome' para empresa
+                nomeCompleto: nomeCompleto,
+                empresa: empresa,
                 whatsapp: telefone,
                 usuario: login,
-                senha,
+                senha: senha,
                 registro: now.toLocaleString('pt-BR'),
                 ativacao: fmt(now),
                 expiracao: fmt(exp)
