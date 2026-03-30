@@ -1016,13 +1016,14 @@ function enviarWhatsApp(id, clienteEnc, itensJSONEnc, total, dataV) {
         msg = `*Pedido #${id}*\nItens: ${itensListaSimples}\n*Total: ${fmtBRL(total)}*\nObrigado pela preferência!`;
     } else {
         // Mensagem rica para Pro/Premium
+        const empresaNome = (typeof Auth !== 'undefined' && typeof Auth.getEmpresa === 'function') ? Auth.getEmpresa() : 'Gestão&Controle';
         const linha = '------------------------------';
         const itensLista = itens.length > 0
             ? itens.map(i => `  • ${i.nome} x${i.quantidade} = ${fmtBRL(i.subtotal)}`).join('\n')
             : '  (itens não disponíveis)';
 
         msg = [
-            `*Gestão&Controle - Comprovante de Venda*`,
+            `*${empresaNome.toUpperCase()} - Comprovante de Venda*`,
             linha,
             `🛒 *Pedido:* #${id}`,
             `📅 *Data:* ${dataV}`,
