@@ -365,7 +365,8 @@ function renderizarCarrinho() {
         tbody.appendChild(tr);
     });
 
-    document.getElementById('totalCarrinho').textContent = fmtBRL(totalGeral);
+    const descGeral = parseCurrencyBRL(document.getElementById('descontoGeralModal').value) || 0;
+    document.getElementById('totalCarrinho').textContent = fmtBRL(Math.max(0, totalGeral - descGeral));
     document.getElementById('qtdItensLabel').textContent = `${carrinho.length} item(ns)`;
     setBtns(true);
 }
@@ -429,7 +430,6 @@ async function salvarRascunho() {
 function abrirModal() {
     formaPagamentoSelecionada = '';
     document.querySelectorAll('.pgto-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('descontoGeralModal').value = '0';
     document.getElementById('prazoContainer').style.display = 'none';
     document.getElementById('prazoCustom').style.display = 'none';
     document.getElementById('vencimentoCustom').value = '';
@@ -515,6 +515,10 @@ function atualizarModalTotais() {
     document.getElementById('modalSubtotal').textContent = formatCurrencyBRL(subtotalBruto);
     document.getElementById('modalDesconto').textContent = `- ${formatCurrencyBRL(descontoTotal).replace('R$ ', 'R$ ')}`;
     document.getElementById('modalTotal').textContent = formatCurrencyBRL(total);
+
+    // Sincroniza o total da gaveta central
+    const totalCarrinhoEl = document.getElementById('totalCarrinho');
+    if (totalCarrinhoEl) totalCarrinhoEl.textContent = formatCurrencyBRL(total);
 }
 
 

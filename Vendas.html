@@ -207,11 +207,8 @@
                 </select>
             </div>
 
-            <div style="margin-bottom:1rem;">
-                <label style="font-size:0.85rem; font-weight:600;">Adicionar Desconto Extra (R$)</label>
-                <input type="text" id="descontoGeralModal" value="0,00" class="moeda-input" onfocus="this.select()"
-                    style="width:100%; margin-top:0.35rem; border: 1px solid #ccc; padding: 6px; border-radius: 4px;">
-            </div>
+            <!-- Desconto Geral removido daqui e movido para o Slide-over Principal -->
+
             <div style="display:flex; gap:0.75rem; margin-top:1rem;">
                 <button onclick="fecharModal()"
                     style="flex:1; padding:0.7rem; border-radius:0.5rem; border:2px solid #e2e8f0; background:white; cursor:pointer;">Cancelar</button>
@@ -340,20 +337,19 @@
                                 <option value="">Carregando...</option>
                             </select>
                         </div>
-                        <div class="form-group mb-0 col-span-6 sm:col-span-4">
+                        <div class="form-group mb-0 col-span-4 sm:col-span-4">
                             <label>Preço</label>
                             <input type="text" id="precoUnitario" readonly class="moeda-input text-sm" style="background:#f1f5f9; width:100%; border-radius:4px; padding:6px; border:1px solid #ccc; font-weight:600;">
                         </div>
-                        <div class="form-group mb-0 col-span-6 sm:col-span-4">
+                        <div class="form-group mb-0 col-span-2 sm:col-span-2">
                             <label for="quantidade">Qtd.</label>
                             <input type="number" id="quantidade" step="1" min="0.01" placeholder="1" class="text-sm p-1.5 w-full border border-gray-300 rounded">
                         </div>
-                        <div class="form-group mb-0 col-span-6 sm:col-span-4">
+                        <div class="form-group mb-0 col-span-3 sm:col-span-3">
                             <label for="descontoItemPct">Desc. (%)</label>
                             <input type="number" id="descontoItemPct" step="0.01" min="0" max="100" value="0" placeholder="0" class="text-sm p-1.5 w-full border border-gray-300 rounded" onfocus="this.select()">
                         </div>
-                        <!-- Campo desc Reais escondido/junto p economizar espaço no slide -->
-                        <div class="form-group mb-0 col-span-6 sm:col-span-8 hidden" >
+                        <div class="form-group mb-0 col-span-3 sm:col-span-3">
                             <label for="descontoItemReais">Desc. (R$)</label>
                             <input type="text" id="descontoItemReais" value="0,00" placeholder="0,00" class="moeda-input text-sm" onfocus="this.select()" style="width:100%; border-radius:4px; padding:6px; border:1px solid #ccc;">
                         </div>
@@ -389,6 +385,12 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                    
+                    <!-- DESCONTO GERAL (FORA DO MODAL) -->
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:0.5rem; padding:0.75rem; margin-bottom:1rem;">
+                        <label style="font-size:0.75rem; font-weight:700; color:#475569; margin-bottom:0.25rem; display:block; text-transform:uppercase;">Desconto Geral (R$)</label>
+                        <input type="text" id="descontoGeralModal" value="0,00" class="moeda-input text-sm w-full" onfocus="this.select()" style="border:1px solid #cbd5e1; border-radius:0.4rem; padding:0.5rem; background:white; font-weight:600;">
                     </div>
 
                     <!-- TOTAIS RÁPIDOS -->
