@@ -148,17 +148,8 @@ window.Auth = (function () {
                     if (_cb) _cb();
                     updateBadge();
 
-                    // Dispara o auto-registro na mestra em background
-                    fetch(window.MASTER_WEBHOOK_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            acao: 'registrarMestra',
-                            spreadsheetId: window.SPREADSHEET_ID,
-                            usuario: data.nome,
-                            empresa: data.empresa,
-                            whatsapp: data.whatsapp
-                        })
-                    }).catch(() => console.log('Registro background pendente.'));
+                    // Dispara o auto-registro na mestra em background e sincroniza plano
+                    _syncPlanWithMaster();
 
                 } else {
                     errEl.textContent = data.mensagem || 'Usuário ou senha incorretos.';
@@ -452,6 +443,31 @@ window.Auth = (function () {
         });
     }
 
+    function _syncPlanWithMaster() {
+        if (!isLoggedIn()) return;
+        fetch(window.MASTER_WEBHOOK_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                acao: 'registrarMestra',
+                spreadsheetId: window.SPREADSHEET_ID,
+                usuario: getUser(),
+                empresa: getEmpresa(),
+                whatsapp: getWhatsApp()
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'sucesso' && data.plano) {
+                if (data.plano !== getPlan()) {
+                    localStorage.setItem(K.plano, data.plano);
+                    updateBadge();
+                    // Se estivermos na página de Vendas ou Financeiro, alguns elementos podem precisar de refresh
+                }
+                if (data.status === 'Inativo') logout();
+            }
+        }).catch(e => console.log('Sincronia pendente.'));
+    }
+
     // ── Revelar o body (anti-flicker) ────────────────────────────
     function _revealBody() {
         // visibility:snap — sem transição de opacidade para evitar que o
@@ -469,6 +485,7 @@ window.Auth = (function () {
         }
 
         if (isLoggedIn()) {
+            _syncPlanWithMaster();
             applyUI();
             updateBadge();
             _revealBody();
@@ -483,6 +500,7 @@ window.Auth = (function () {
         getUser, getNivel, getWhatsApp, getPlan, getEmpresa, isPlanBasico, isAdmin, isLoggedIn,
         getPermissoes, podeVerRelatorios, podeVenderFiado, podeVerCusto,
         logout, requireAdmin, requirePlan, applyUI, updateBadge,
-        init, showModal, _doLogin, _doFirstAccess, setUser, setWhatsApp
+        init, showModal, _doLogin, _doFirstAccess, setUser, setWhatsApp,
+        syncPlanWithMaster: _syncPlanWithMaster
     };
 })();

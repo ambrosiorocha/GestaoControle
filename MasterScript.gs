@@ -583,7 +583,7 @@ function responseJson(obj) {
 function handleRegistrarMestra(data) {
   try {
     // 1. Atualizar a Planilha Mestra (Auditoria e Controle Central)
-    upsertMasterClient(data, "Atualização via Login/Acesso");
+    var resultMestra = upsertMasterClient(data, "Atualização via Login/Acesso");
 
     // 2. Sincronizar com a Planilha do Cliente (Informação Local)
     var id = data.spreadsheetId;
@@ -593,14 +593,22 @@ function handleRegistrarMestra(data) {
          var configSheet = clientSS.getSheetByName("Configurações");
          if (configSheet) {
            var timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy HH:mm:ss");
-           updateHorizontalConfig(configSheet, { "UltimoAcesso": timestamp });
+           // Agora sincronizamos também o Plano que veio da Mestra
+           updateHorizontalConfig(configSheet, { 
+             "UltimoAcesso": timestamp,
+             "Plano": resultMestra.plano 
+           });
          }
        } catch (e) {
          console.warn("Erro ao atualizar login na planilha do cliente: " + e.message);
        }
     }
 
-    return responseSucesso("Registro atualizado na Mestra.");
+    // Retornamos o plano e status reais para que o frontend possa se auto-atualizar (ex: upgrade para Pro)
+    return responseSucessoMsg("Registro atualizado na Mestra.", {
+      plano: resultMestra.plano,
+      status: resultMestra.status
+    });
   } catch (e) { return responseErro(e.message); }
 }
 
@@ -803,6 +811,12 @@ function upsertMasterClient(data, actionDescription) {
   // Converte toda a linha em valores estáticos para blindar os links gerados por fórmula
   var rangeToFreeze = sheet.getRange(targetRow, 1, 1, lastCol);
   rangeToFreeze.setValues(rangeToFreeze.getValues());
+
+  // Retorna os dados atuais para sincronia do frontend
+  return {
+    plano: (colPlanoIndex > -1) ? sheet.getRange(targetRow, colPlanoIndex + 1).getValue() : (data.plano || 'Básico'),
+    status: (colStatusIndex > -1) ? sheet.getRange(targetRow, colStatusIndex + 1).getValue() : 'Ativo'
+  };
 }
 
 /**
