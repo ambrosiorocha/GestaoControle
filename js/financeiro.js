@@ -161,9 +161,18 @@ function exibirStatus(resposta) {
     var statusMessage = document.getElementById(targetId);
     if (!statusMessage) statusMessage = document.getElementById('statusMessage');
 
-    statusMessage.textContent = resposta.mensagem;
+    const isError = resposta.status === 'error' || resposta.status === 'erro';
+    const icon = isError ? '🛑 ' : '✅ ';
+    statusMessage.innerHTML = icon + resposta.mensagem;
+
     statusMessage.className = '';
     if (resposta.status) statusMessage.classList.add(resposta.status);
+
+    if (isError && isSlideoverOpen) {
+        statusMessage.classList.add('shake');
+        setTimeout(() => statusMessage.classList.remove('shake'), 600);
+    }
+
     statusMessage.style.display = 'block';
     setTimeout(() => statusMessage.style.display = 'none', 5000);
 }

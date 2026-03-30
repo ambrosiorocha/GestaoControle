@@ -122,9 +122,18 @@ function exibirStatus(resposta) {
     var el = document.getElementById(targetId);
     if (!el) el = document.getElementById('statusMessage');
 
-    el.textContent = resposta.mensagem;
+    const isError = resposta.status === 'error' || resposta.status === 'erro';
+    const icon = isError ? '🛑 ' : '✅ ';
+    el.innerHTML = icon + resposta.mensagem;
+
     el.className = '';
     if (resposta.status) el.classList.add(resposta.status);
+
+    if (isError && isSlideoverOpen) {
+        el.classList.add('shake');
+        setTimeout(() => el.classList.remove('shake'), 600);
+    }
+
     el.style.display = 'block';
     setTimeout(() => el.style.display = 'none', 7000);
 }
