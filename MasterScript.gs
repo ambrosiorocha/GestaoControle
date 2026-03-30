@@ -740,8 +740,20 @@ function upsertMasterClient(data, actionDescription) {
     }
     // Concatena na Trilha de Auditoria (Audit Trail)
     var currentObs = sheet.getRange(rowIndex, colObsIndex + 1).getValue();
-    var newObs = (currentObs ? currentObs + "\n" : "") + logEntry;
-    sheet.getRange(rowIndex, colObsIndex + 1).setValue(newObs);
+    var dateStr = timestamp.split(' ')[0];
+    var shouldAddLog = true;
+
+    // Se for um log de login, verifica se já existe um para o dia de hoje
+    if (actionDescription === "Atualização via Login/Acesso" && currentObs) {
+      if (currentObs.indexOf("[" + dateStr) !== -1 && currentObs.indexOf("Atualização via Login/Acesso") !== -1) {
+        shouldAddLog = false;
+      }
+    }
+
+    if (shouldAddLog) {
+      var newObs = (currentObs ? currentObs + "\n" : "") + logEntry;
+      sheet.getRange(rowIndex, colObsIndex + 1).setValue(newObs);
+    }
     
   } else {
     // ── NOVO REGISTRO (AppendRow)
