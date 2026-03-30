@@ -29,6 +29,9 @@ document.addEventListener('DOMContentLoaded', function () {
             .desktop-sidebar { display: flex !important; }
             .hidden.md\\:flex { display: flex !important; }
             .main-content { padding-top: 3.5rem !important; }
+            
+            /* Ocultar hambúrguer quando sidebar aberta */
+            #desktop-sidebar.sidebar-open ~ #hamburgerBtn { display: none !important; }
         }
         .user-badge-block {
             padding: 0.6rem 1rem; border-top: 1px solid rgba(255,255,255,0.12);
@@ -98,9 +101,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const sidebar = `
         <aside id="desktop-sidebar" class="desktop-sidebar hidden md:flex flex-col">
-            <div class="sidebar-header" style="display:flex;justify-content:center;align-items:center;gap:8px;">
+            <div class="sidebar-header" style="display:flex; align-items:center; padding: 1rem; gap:10px; border-bottom: 1px solid rgba(255,255,255,0.08);">
                 <img src="assets/logo.png" alt="Logo" id="sidebarBrandIcon" style="height:28px; object-fit:contain; filter: brightness(0) invert(1);"> 
-                <span id="sidebarEmpresaName">Gestão&amp;Controle</span>
+                <span id="sidebarEmpresaName" style="flex:1; font-weight:700; font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Gestão&amp;Controle</span>
+                <button onclick="closeSidebar()" class="md:hidden" style="background:none; border:none; color:white; font-size:1.4rem; cursor:pointer; opacity:0.7; padding:0 5px;">✕</button>
             </div>
             <nav id="desktop-nav" class="sidebar-nav flex-1">
                 <a href="index.html" class="nav-link-menu" ${hideInicio}>
