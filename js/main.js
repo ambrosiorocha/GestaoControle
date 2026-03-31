@@ -235,11 +235,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         <input type="text" id="novoTelConta" style="width:100%; padding:0.6rem; border:1.5px solid #e2e8f0; border-radius:0.5rem; outline:none; font-size:0.9rem;" placeholder="DDD + Número">
                     </div>
                     
-                    <div style="margin-bottom:1.5rem;">
-                        <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:0.35rem;">Nova Senha</label>
-                        <input type="password" id="novaSenhaConta" style="width:100%; padding:0.6rem; border:1.5px solid #e2e8f0; border-radius:0.5rem; outline:none; font-size:0.9rem;" placeholder="Deixe em branco para manter a atual">
+                    <div id="contcaCaixasArea" style="margin-bottom:1.5rem; display:none;">
+                        <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:0.15rem;">🏦 Gerenciar Caixas / Contas</label>
+                        <p style="font-size:0.65rem; color:#64748b; margin-bottom:0.4rem;">Separe os nomes por vírgula (ex: Dinheiro, Nubank, Itaú)</p>
+                        <input type="text" id="caixasConta" style="width:100%; padding:0.6rem; border:1.5px solid #e2e8f0; border-radius:0.5rem; outline:none; font-size:0.9rem;" placeholder="Ex: Dinheiro, Banco do Brasil">
                     </div>
-                    
+
                     <button id="btnSalvarConta" onclick="salvarConfiguracoesConta()" style="width:100%; padding:0.75rem; background:#16a34a; color:white; border:none; border-radius:0.5rem; font-weight:700; cursor:pointer; transition:background 0.2s; box-shadow: 0 4px 12px rgba(22,163,74,0.3);">
                         ✅ Salvar Alterações
                     </button>
@@ -556,9 +557,21 @@ window.abrirModalConta = function () {
             inputTel.value = (typeof Auth !== 'undefined' && Auth.getWhatsApp) ? (Auth.getWhatsApp() || '') : '';
         }
 
-        const inputSenha = document.getElementById('novaSenhaConta');
-        if (inputSenha) {
-            inputSenha.value = '';
+        const caixasArea = document.getElementById('contcaCaixasArea');
+        const inputCaixas = document.getElementById('caixasConta');
+        const podeGerenciarCaixas = typeof Auth !== 'undefined'
+            && Auth.isAdmin()
+            && !Auth.isPlanBasico();
+
+        if (caixasArea) {
+            caixasArea.style.display = podeGerenciarCaixas ? 'block' : 'none';
+        }
+
+        if (inputCaixas) {
+            inputCaixas.value = (typeof Auth !== 'undefined' && Auth.getCaixasRaw)
+                ? (Auth.getCaixasRaw() || 'Dinheiro')
+                : 'Dinheiro';
+            inputCaixas.disabled = !podeGerenciarCaixas;
         }
 
         const errBox = document.getElementById('contaError');
@@ -587,7 +600,17 @@ window.fecharModalConta = function () {
 window.salvarConfiguracoesConta = function () {
     const usuario = document.getElementById('novoUsuarioConta').value.trim();
     const whatsapp = document.getElementById('novoTelConta').value.trim();
-    const senha = document.getElementById('novaSenhaConta').value.trim();
+    const caixasInput = document.getElementById('caixasConta');
+    const podeGerenciarCaixas = typeof Auth !== 'undefined'
+        && Auth.isAdmin()
+        && !Auth.isPlanBasico();
+    const caixasStr = podeGerenciarCaixas && caixasInput
+        ? (caixasInput.value
+            .split(',')
+            .map(item => item.trim())
+            .filter(item => item !== '')
+            .join(', ') || 'Dinheiro')
+        : Auth.getCaixasRaw();
     const err = document.getElementById('contaError');
     const success = document.getElementById('contaSuccess');
     const btn = document.getElementById('btnSalvarConta');
@@ -614,8 +637,8 @@ window.salvarConfiguracoesConta = function () {
         payload.whatsapp = whatsapp;
     }
 
-    if (senha !== "") {
-        payload.novaSenha = senha;
+    if (podeGerenciarCaixas && caixasStr !== Auth.getCaixasRaw()) {
+        payload.caixas = caixasStr;
     }
 
     fetch(window.MASTER_WEBHOOK_URL, {
@@ -626,6 +649,7 @@ window.salvarConfiguracoesConta = function () {
         .then(data => {
             if (data.status === 'sucesso' || data.status === 'ok') {
                 // Sucesso Visual Customizado
+                if (caixasStr) localStorage.setItem('sv_caixas', caixasStr);
                 success.textContent = '✅ Dados atualizados com sucesso!';
                 success.style.display = 'block';
 
@@ -633,7 +657,7 @@ window.salvarConfiguracoesConta = function () {
                 Auth.setUser(usuario);
                 if (payload.whatsapp) Auth.setWhatsApp(whatsapp);
 
-                document.getElementById('userBadge').textContent = usuario;
+                Auth.updateBadge();
 
                 // Fecha o modal elegantemente após 2 segundos
                 setTimeout(() => {

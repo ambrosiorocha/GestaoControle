@@ -136,24 +136,50 @@
                 <div id="statusMessage"></div>
 
                 <div class="table-container">
-                    <div class="flex justify-between items-center mb-4" style="flex-wrap:wrap; gap:0.5rem;">
-                        <h3>Registros Financeiros</h3>
-                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
-                            <input type="date" id="filtroDataInicio" class="p-2 border border-gray-300 rounded text-sm"
-                                title="Data início">
-                            <span style="font-size:0.8rem; color:#64748b;">até</span>
-                            <input type="date" id="filtroDataFim" class="p-2 border border-gray-300 rounded text-sm"
-                                title="Data fim">
-                            <button onclick="aplicarFiltros()"
-                                class="p-2 border border-gray-300 rounded text-sm bg-blue-50 hover:bg-blue-100">🔍
-                                Filtrar</button>
-                            <button onclick="limparFiltros()" class="p-2 border border-gray-300 rounded text-sm">✕
-                                Limpar</button>
-                            <select id="filtroTipo" class="p-2 border border-gray-300 rounded text-sm">
-                                <option value="">Todos os Tipos</option>
-                                <option value="Pagar">A Pagar</option>
-                                <option value="Receber">A Receber</option>
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <h3 class="text-xl font-bold text-slate-800">Registros Financeiros</h3>
+                        <div class="flex flex-wrap gap-2 items-center w-full md:w-auto">
+                            <!-- Busca Rápida -->
+                            <div class="relative flex-grow md:flex-grow-0">
+                                <input type="text" id="filtroBusca" placeholder="Pesquisar registros..." 
+                                    class="w-full md:w-64 p-2 pl-8 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                                <svg class="absolute left-2.5 top-2.5 text-gray-400" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </div>
+
+                            <!-- Filtros de Seleção -->
+                            <select id="filtroTipo" class="p-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Natureza (Todas)</option>
+                                <option value="Receber">Entradas</option>
+                                <option value="Pagar">Saídas</option>
                             </select>
+
+                            <select id="filtroStatus" class="p-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Status (Todos)</option>
+                                <option value="Pago">Pago / Quitado</option>
+                                <option value="Pendente">Pendente / Agendado</option>
+                                <option value="Estornado">Cancelado / Estornado</option>
+                            </select>
+
+                            <select id="filtroCategoria" class="p-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Categoria (Todas)</option>
+                                <option value="Venda">Vendas</option>
+                                <option value="Fornecedor">Fornecedores</option>
+                                <option value="Operacional">Operacional</option>
+                                <option value="Pessoal">Pessoal / Salários</option>
+                                <option value="Impostos">Impostos / Taxas</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+
+                            <!-- Filtro de Data -->
+                            <div class="flex items-center gap-1 bg-gray-50 p-1 rounded-lg border border-gray-200">
+                                <input type="date" id="filtroDataInicio" class="bg-transparent border-none text-xs outline-none p-1" title="Início">
+                                <span class="text-gray-400 text-xs">→</span>
+                                <input type="date" id="filtroDataFim" class="bg-transparent border-none text-xs outline-none p-1" title="Fim">
+                            </div>
+
+                            <button onclick="limparFiltros()" class="p-2 text-gray-500 hover:text-red-500 transition-colors" title="Limpar Filtros">
+                                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
                         </div>
                     </div>
                     <table>
