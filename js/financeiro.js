@@ -1,26 +1,44 @@
 let registrosFinanceiros = [];
 
+function obterCaixasDisponiveisFinanceiro() {
+    const caixasConfiguradas = (typeof Auth !== 'undefined' && Auth.getCaixas)
+        ? Auth.getCaixas()
+        : ['Dinheiro'];
+    const caixasHistoricas = [...new Set(registrosFinanceiros.map(r => (r.caixa || 'Dinheiro').trim()))]
+        .filter(Boolean);
+    const caixas = [...caixasConfiguradas];
+
+    caixasHistoricas.forEach(caixa => {
+        if (!caixas.includes(caixa)) caixas.push(caixa);
+    });
+
+    if (typeof Auth !== 'undefined' && Auth.isPlanBasico()) {
+        return ['Dinheiro'];
+    }
+
+    return caixas.length > 0 ? caixas : ['Dinheiro'];
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     if (window.MASTER_WEBHOOK_URL === '' || window.MASTER_WEBHOOK_URL.includes('COLE_AQUI')) {
         exibirStatus({ status: 'error', mensagem: 'Configure a window.MASTER_WEBHOOK_URL no config.js.' });
         return;
     }
     const caixaSelect = document.getElementById('caixa');
-    // Injeção de dependência dos Caixas baseada no Plano
-    // Injeção de dependência dos Caixas baseada no Plano
-    if (Auth.isPlanBasico()) {
-        caixaSelect.innerHTML = '<option value="Dinheiro">💵 Dinheiro</option>';
-        caixaSelect.value = 'Dinheiro';
-        caixaSelect.disabled = true; // Trava para o plano Básico
-    } else {
-        caixaSelect.innerHTML = `
-            <option value="Dinheiro">💵 Dinheiro</option>
-            <option value="Conta Banco do Brasil">🏦 Conta Banco do Brasil</option>
-            <option value="Conta Itaú">🏦 Conta Itaú</option>
-            <option value="Conta Caixa">🏦 Conta Bradesco</option>
-            <option value="Conta Nubank">🟣 Nubank Empresa</option>
-        `;
+    function popularCaixas() {
+        const caixas = Auth.getCaixas();
+        let options = '';
+        caixas.forEach(c => {
+            options += `<option value="${c}">🏦 ${c}</option>`;
+        });
+        caixaSelect.innerHTML = options;
+        
+        if (Auth.isPlanBasico()) {
+            caixaSelect.value = 'Dinheiro';
+            caixaSelect.disabled = true;
+        }
     }
+    popularCaixas();
 
     // Default Vencimento to today
     document.getElementById('vencimento').value = new Date().toISOString().split('T')[0];
@@ -34,11 +52,10 @@ document.addEventListener('DOMContentLoaded', function () {
         prepararResumoModal();
     });
 
-    document.getElementById('btnConfirmarSalvar').addEventListener('click', function (e) {
-        execWithSpinner(this, salvarFinanceiro);
-    });
-
     document.getElementById('filtroTipo').addEventListener('change', aplicarFiltros);
+    document.getElementById('filtroStatus').addEventListener('change', aplicarFiltros);
+    document.getElementById('filtroCategoria').addEventListener('change', aplicarFiltros);
+    document.getElementById('filtroBusca').addEventListener('input', aplicarFiltros);
     if (Auth.isPlanBasico()) {
         const kpiGrid = document.getElementById('kpiGridFinanceiro');
         if (kpiGrid) kpiGrid.style.display = 'none';
@@ -286,6 +303,9 @@ async function carregarFinanceiro() {
 // ==================== FILTROS ====================
 function aplicarFiltros() {
     const filtroTipo = document.getElementById('filtroTipo').value;
+    const filtroStatus = document.getElementById('filtroStatus').value;
+    const filtroCategoria = document.getElementById('filtroCategoria').value;
+    const filtroBusca = document.getElementById('filtroBusca').value.toLowerCase();
     const dataInicio = document.getElementById('filtroDataInicio').value;
     const dataFim = document.getElementById('filtroDataFim').value;
 
@@ -297,10 +317,22 @@ function aplicarFiltros() {
         const isVenda = String(r.descricao).toLowerCase().includes('venda #') || (r.categoria && String(r.categoria).toLowerCase() === 'venda');
         return !(isEstornado && isVenda);
     });
-    // Removemos os filtros rígidos do Básico. Agora eles podem ver as próprias Receitas lançadas à vista.
 
-    if (filtroTipo && !(typeof Auth !== 'undefined' && Auth.isPlanBasico())) {
+    if (filtroTipo) {
         filtrados = filtrados.filter(r => r.tipo === filtroTipo);
+    }
+    if (filtroStatus) {
+        filtrados = filtrados.filter(r => r.status === filtroStatus);
+    }
+    if (filtroCategoria) {
+        filtrados = filtrados.filter(r => r.categoria === filtroCategoria);
+    }
+    if (filtroBusca) {
+        filtrados = filtrados.filter(r => 
+            String(r.descricao).toLowerCase().includes(filtroBusca) || 
+            String(r.categoria).toLowerCase().includes(filtroBusca) ||
+            String(r.id || r.ID).includes(filtroBusca)
+        );
     }
     if (dataInicio) {
         const inicio = new Date(dataInicio + 'T00:00:00');
@@ -325,6 +357,9 @@ function limparFiltros() {
     document.getElementById('filtroDataInicio').value = '';
     document.getElementById('filtroDataFim').value = '';
     document.getElementById('filtroTipo').value = '';
+    document.getElementById('filtroStatus').value = '';
+    document.getElementById('filtroCategoria').value = '';
+    document.getElementById('filtroBusca').value = '';
     aplicarFiltros();
 }
 
@@ -397,11 +432,13 @@ function renderizarTabela(dados) {
             }
         }
 
+        const tipoMostrado = isPago ? (r.tipo === 'Receber' ? 'Receita' : 'Despesa') : r.tipo;
+
         row.innerHTML = `
             <td class="${tdClasses}">${registroId}</td>
             <td class="${tdClasses}">${r.descricao || ''}</td>
             <td class="${tdClasses} font-semibold">${formatCurrencyBRL(r.valor)}</td>
-            <td class="${tdClasses} ${tipoClass}">${r.tipo || ''}</td>
+            <td class="${tdClasses} ${tipoClass}">${tipoMostrado}</td>
             <td class="${tdClasses}">${formatarData(r.vencimento)}</td>
             <td class="${tdClasses} ${statusClass}">${r.status || ''}</td>
             <td class="${tdClasses}">${r.categoria || ''}</td>
@@ -587,7 +624,7 @@ window.renderizarExtratosCaixa = function () {
     kpiGrid.innerHTML = '';
 
     // Se ainda não inicializamos as opções do select
-    if (selectFiltro.options.length === 0) {
+    if (selectFiltro.options.length <= 1) {
         selectFiltro.innerHTML = '<option value="TODOS">🧾 Mostrar Todos os Caixas</option>';
         caixasAtivos.forEach(c => {
             selectFiltro.innerHTML += `<option value="${c}">${c}</option>`;
@@ -639,6 +676,76 @@ window.renderizarExtratosCaixa = function () {
         const cardHtml = `
             <div class="kpi-card" style="background:#f8fafc; border-bottom: 4px solid ${saldoFinal >= 0 ? '#16a34a' : '#ef4444'}">
                 <h4 style="color:#475569; font-weight:600; font-size:0.95rem;">🪙 ${nomeCaixa}</h4>
+                <p style="color:${saldoFinal >= 0 ? '#16a34a' : '#ef4444'}; font-size:1.5rem; font-weight:700;">${formatCurrencyBRL(saldoFinal)}</p>
+                <div style="display:flex; justify-content:space-between; margin-top:0.5rem; font-size:0.8rem;">
+                    <span style="color:#16a34a">Entrou: ${formatCurrencyBRL(entradas)}</span>
+                    <span style="color:#ef4444">Saiu: ${formatCurrencyBRL(saidas)}</span>
+                </div>
+            </div>
+        `;
+        kpiGrid.innerHTML += cardHtml;
+    });
+
+    renderizarTabelaExtrato();
+}
+
+window.renderizarExtratosCaixa = function () {
+    const isBsc = typeof Auth !== 'undefined' && Auth.isPlanBasico();
+    const caixasAtivos = obterCaixasDisponiveisFinanceiro();
+    const kpiGrid = document.getElementById('kpiGridCaixas');
+    const selectFiltro = document.getElementById('filtroExtratoCaixa');
+    const dtInicioStr = document.getElementById('filtroExtratoInicio')?.value;
+    const dtFimStr = document.getElementById('filtroExtratoFim')?.value;
+
+    kpiGrid.innerHTML = '';
+
+    const filtroAtual = selectFiltro.value || 'TODOS';
+    selectFiltro.innerHTML = '<option value="TODOS">ðŸ§¾ Mostrar Todos os Caixas</option>';
+    caixasAtivos.forEach(c => {
+        selectFiltro.innerHTML += `<option value="${c}">${c}</option>`;
+    });
+    selectFiltro.value = (filtroAtual === 'TODOS' || caixasAtivos.includes(filtroAtual)) ? filtroAtual : 'TODOS';
+
+    let baseParaCaixas = [...registrosFinanceiros];
+    if (dtInicioStr) {
+        const inicio = new Date(dtInicioStr + 'T00:00:00');
+        baseParaCaixas = baseParaCaixas.filter(r => {
+            const d = typeof parseDataVencimento === 'function' ? parseDataVencimento(r.vencimento) : new Date(r.vencimento);
+            return d && d >= inicio;
+        });
+    }
+    if (dtFimStr) {
+        const fim = new Date(dtFimStr + 'T23:59:59');
+        baseParaCaixas = baseParaCaixas.filter(r => {
+            const d = typeof parseDataVencimento === 'function' ? parseDataVencimento(r.vencimento) : new Date(r.vencimento);
+            return d && d <= fim;
+        });
+    }
+
+    caixasAtivos.forEach(nomeCaixa => {
+        const registrosDesteCaixa = baseParaCaixas.filter(r => (r.caixa || 'Dinheiro') === nomeCaixa);
+
+        let entradas = 0;
+        let saidas = 0;
+
+        registrosDesteCaixa.forEach(r => {
+            const val = parseFloat(r.valor) || 0;
+            const statusPago = (r.status === 'Pago' || r.status === 'Quitado');
+            const naoEstornado = !(r.status === 'Estornado' || r.status === 'Estornada');
+
+            if (statusPago && naoEstornado) {
+                if (r.tipo === 'Receber') entradas += val;
+                else saidas += val;
+            }
+        });
+
+        const saldoFinal = entradas - saidas;
+
+        if (isBsc && nomeCaixa !== 'Dinheiro') return;
+
+        const cardHtml = `
+            <div class="kpi-card" style="background:#f8fafc; border-bottom: 4px solid ${saldoFinal >= 0 ? '#16a34a' : '#ef4444'}">
+                <h4 style="color:#475569; font-weight:600; font-size:0.95rem;">ðŸª™ ${nomeCaixa}</h4>
                 <p style="color:${saldoFinal >= 0 ? '#16a34a' : '#ef4444'}; font-size:1.5rem; font-weight:700;">${formatCurrencyBRL(saldoFinal)}</p>
                 <div style="display:flex; justify-content:space-between; margin-top:0.5rem; font-size:0.8rem;">
                     <span style="color:#16a34a">Entrou: ${formatCurrencyBRL(entradas)}</span>
