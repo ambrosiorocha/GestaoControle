@@ -1,5 +1,4 @@
 // ================================
-let vendasAtuais = [];
 // ESTADO GLOBAL
 // ================================
 let produtos = [];
@@ -20,13 +19,6 @@ document.addEventListener('DOMContentLoaded', function () {
     carregarOperadores();
     carregarHistoricoVendas();
 
-    const filtroStatusVendas = document.getElementById('filtroStatusVendas');
-    const opcaoRascunho = filtroStatusVendas?.querySelector('option[value="Pendente"]');
-    if (opcaoRascunho) {
-        opcaoRascunho.value = 'Rascunho';
-        opcaoRascunho.textContent = 'Rascunho';
-    }
-
     document.getElementById('produto').addEventListener('change', atualizarPrecoUnitario);
     document.getElementById('quantidade').addEventListener('input', () => setTimeout(atualizarSubtotalItem, 10));
     document.getElementById('descontoItemPct').addEventListener('input', () => setTimeout(() => sincronizarDesconto('pct'), 10));
@@ -43,10 +35,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
     document.getElementById('descontoGeralModal').addEventListener('input', atualizarModalTotais);
-    document.getElementById('filtroStatusVendas')?.addEventListener('change', filtrarHistoricoVendas);
-    document.getElementById('filtroBuscaVendas')?.addEventListener('input', filtrarHistoricoVendas);
-    document.getElementById('filtroInicio')?.addEventListener('change', filtrarHistoricoVendas);
-    document.getElementById('filtroFim')?.addEventListener('change', filtrarHistoricoVendas);
 
     // Aplica restrições de plano após Auth estar pronto
     let _gateTries = 0;
@@ -453,12 +441,13 @@ function abrirModal() {
             caixaSelect.value = 'Dinheiro';
             caixaSelect.disabled = true;
         } else {
-            const caixas = Auth.getCaixas();
-            let options = '';
-            caixas.forEach(c => {
-                options += `<option value="${c}">🏦 ${c}</option>`;
-            });
-            caixaSelect.innerHTML = options;
+            caixaSelect.innerHTML = `
+                <option value="Dinheiro">💵 Dinheiro</option>
+                <option value="Conta Banco do Brasil">🏦 Conta Banco do Brasil</option>
+                <option value="Conta Itaú">🏦 Conta Itaú</option>
+                <option value="Conta Caixa">🏦 Conta Bradesco</option>
+                <option value="Conta Nubank">🟣 Nubank Empresa</option>
+            `;
             caixaSelect.disabled = false;
         }
     }
@@ -720,29 +709,20 @@ async function filtrarHistoricoVendas() {
     await execWithSpinner(btn, async () => {
         const dataInicio = document.getElementById('filtroInicio').value;
         const dataFim = document.getElementById('filtroFim').value;
-        const status = document.getElementById('filtroStatusVendas').value;
-        const busca = document.getElementById('filtroBuscaVendas').value;
 
         let hint = 'Carregando...';
         if (dataInicio) {
             const dInicio = new Date(dataInicio + 'T00:00:00');
+            // Se buscar algo com mais de 60 dias, o script lerá a base de Historico
             if ((Date.now() - dInicio) > 60 * 24 * 60 * 60 * 1000) {
                 hint = 'Consultando Arquivos (> 60 dias)...';
             }
         }
 
         btn.textContent = hint;
-        await carregarHistoricoVendas({ dataInicio, dataFim, status, busca }, hint);
+        await carregarHistoricoVendas({ dataInicio, dataFim }, hint);
         btn.textContent = 'Buscar';
     });
-}
-
-function limparFiltrosVendas() {
-    document.getElementById('filtroInicio').value = '';
-    document.getElementById('filtroFim').value = '';
-    document.getElementById('filtroStatusVendas').value = '';
-    document.getElementById('filtroBuscaVendas').value = '';
-    filtrarHistoricoVendas();
 }
 
 function toggleItens(btn) {
@@ -1061,160 +1041,4 @@ function enviarWhatsApp(id, clienteEnc, itensJSONEnc, total, dataV) {
 
     const encoded = encodeURIComponent(msg);
     window.open(`https://wa.me/?text=${encoded}`, '_blank');
-}
-
-function normalizarStatusVenda(status) {
-    const st = String(status || '').trim().toLowerCase();
-    if (st === 'pendente') return 'Rascunho';
-    if (st === 'concluÃ­da' || st === 'concluida' || st === 'concluda' || st === '') return 'Concluida';
-    if (st === 'estornada' || st === 'estornado') return 'Estornada';
-    return status || '';
-}
-
-function parseDataFiltroVenda(valor) {
-    if (!valor) return null;
-    if (valor instanceof Date && !isNaN(valor)) return valor;
-
-    const str = String(valor).trim();
-    const matchBr = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (matchBr) {
-        return new Date(`${matchBr[3]}-${matchBr[2].padStart(2, '0')}-${matchBr[1].padStart(2, '0')}T00:00:00`);
-    }
-
-    const d = new Date(str);
-    return isNaN(d) ? null : d;
-}
-
-function renderizarHistoricoVendasLocal(vendas) {
-    const tbody = document.getElementById('listaHistorico');
-    tbody.innerHTML = '';
-
-    if (!Array.isArray(vendas) || vendas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" class="td-empty">Nenhuma venda encontrada.</td></tr>`;
-        return;
-    }
-
-    vendas.forEach(v => {
-        const id = v['ID da Venda'] || '';
-        const dataV = v['Data'] || '-';
-        const cliente = v['Cliente'] || '-';
-        const operador = v['Usuario'] || v['UsuÃ¡rio'] || '-';
-        const itens = String(v['Itens'] || '');
-        const pgto = v['Forma de Pagamento'] || '-';
-        const total = isNaN(parseFloat(v['Total com Desconto'])) ? 0 : parseFloat(v['Total com Desconto']);
-        const status = v['Status'] || '';
-        const statusNormalizado = normalizarStatusVenda(status);
-        const itensJSON = v['ItensJSON'] || '[]';
-
-        const isMulti = itens.includes(',');
-        const itensDisplay = isMulti ? itens.substring(0, 35) + '...' : itens;
-        const expandBtn = isMulti
-            ? `<button class="expand-btn" onclick="toggleItens(this)">â–¶ ver itens</button>
-               <div class="items-detail">${itens.split(', ').join('<br>')}</div>`
-            : '';
-
-        const waSvg = `<svg width="13" height="13" fill="#16a34a" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967c-.273-.099-.471-.148-.67.15c-.197.297-.767.966-.94 1.164c-.173.199-.347.223-.644.075c-.297-.15-1.255-.463-2.39-1.475c-.883-.788-1.48-1.761-1.653-2.059c-.173-.297-.018-.458.13-.606c.134-.133.298-.347.446-.52c.149-.174.198-.298.298-.497c.099-.198.05-.371-.025-.52c-.075-.149-.669-1.612-.916-2.207c-.242-.579-.487-.5-.669-.51c-.173-.008-.371-.01-.57-.01c-.198 0-.52.074-.792.372c-.272.297-1.04 1.016-1.04 2.479c0 1.462 1.065 2.875 1.213 3.074c.149.198 2.096 3.2 5.077 4.487c.709.306 1.262.489 1.694.625c.712.227 1.36.195 1.871.118c.571-.085 1.758-.719 2.006-1.413c.248-.694.248-1.289.173-1.413c-.074-.124-.272-.198-.57-.347zm-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214l-3.741.982l.998-3.648l-.235-.374A9.86 9.86 0 012.166 11.892C2.167 6.442 6.602 2.008 12.054 2.008c2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884zm8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>`;
-        const whatsappBtn = `<button title="Enviar comprovante via WhatsApp" style="background:none;border:1px solid #22c55e;border-radius:4px;padding:3px 6px;cursor:pointer;display:inline-flex;align-items:center;" onclick="enviarWhatsApp(${id},'${encodeURIComponent(cliente)}','${encodeURIComponent(itensJSON)}',${total},'${dataV}')">${waSvg}</button>`;
-
-        let statusBadge = '';
-        let acoes = '';
-        if (statusNormalizado === 'Rascunho') {
-            statusBadge = `<span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;">&#128190; Rascunho</span>`;
-            acoes = `
-                <button class="edit-btn" style="font-size:11px;" onclick="editarRascunho(${id}, '${encodeURIComponent(itensJSON)}')">&#9999;&#65039; Editar</button>
-                <button class="edit-btn" style="background:#16a34a;font-size:11px;" onclick="abrirModalFinalizarPendente(${id}, '${encodeURIComponent(itensJSON)}')">&#9989; Finalizar</button>
-            `;
-        } else if (statusNormalizado === 'Concluida') {
-            statusBadge = `<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;">&#9989; Concluida</span>`;
-            const basicoCon = typeof Auth !== 'undefined' && Auth.isPlanBasico();
-            const printCon = basicoCon ? '' : `<button title="Reimprimir cupom" data-print-btn style="background:none;border:1px solid #cbd5e1;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:13px;" onclick="reimprimirCupom(${id},'${encodeURIComponent(itensJSON)}','${encodeURIComponent(cliente)}','${encodeURIComponent(operador)}','${encodeURIComponent(pgto)}',${total},'${dataV}')">&#128424;&#65039;</button>`;
-            acoes = `${printCon}${whatsappBtn}<button class="delete-btn" style="background:#f59e0b;color:#fff;font-size:11px;" data-admin-btn onclick="confirmarEstorno(${id})">&#8617;&#65039; Estornar</button>`;
-        } else if (statusNormalizado === 'Estornada') {
-            statusBadge = `<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;">&#8617;&#65039; Estornada</span>`;
-            const basicoEst = typeof Auth !== 'undefined' && Auth.isPlanBasico();
-            const printEst = basicoEst ? '' : `<button title="Reimprimir cupom" data-print-btn style="background:none;border:1px solid #cbd5e1;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:13px;" onclick="reimprimirCupom(${id},'${encodeURIComponent(itensJSON)}','${encodeURIComponent(cliente)}','${encodeURIComponent(operador)}','${encodeURIComponent(pgto)}',${total},'${dataV}')">&#128424;&#65039;</button>`;
-            const reaproveitarBtn = `<button title="Copiar itens para nova venda (Reaproveitar)" class="edit-btn" style="background:none; border:1px solid #3b82f6; padding:3px 6px; font-size:13px; margin-right:2px; border-radius:4px; cursor:pointer;" onclick="reaproveitarVenda('${encodeURIComponent(itensJSON)}')">&#128260;</button>`;
-            acoes = `${reaproveitarBtn}${printEst}`;
-        }
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${id}</td>
-            <td>${dataV}</td>
-            <td>${cliente}</td>
-            <td>${operador}</td>
-            <td><span>${itensDisplay}</span>${expandBtn}</td>
-            <td>${pgto}</td>
-            <td>${statusBadge}</td>
-            <td><strong>${formatCurrencyBRL(total)}</strong></td>
-            <td><div class="action-buttons">${acoes}</div></td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    if (typeof Auth !== 'undefined') Auth.applyUI();
-}
-
-async function carregarHistoricoVendas(msgCarregando = 'Carregando...') {
-    const tbody = document.getElementById('listaHistorico');
-    tbody.innerHTML = `<tr><td colspan="10" class="td-empty">${msgCarregando}</td></tr>`;
-
-    try {
-        const payload = { action: 'obterVendas', spreadsheetId: window.SPREADSHEET_ID };
-        const res = await fetch(window.MASTER_WEBHOOK_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const text = await res.text();
-        const data = JSON.parse(text);
-
-        if (data.status === 'sucesso' && data.dados) {
-            vendasAtuais = [...parseCompactData(data.dados)].reverse();
-            window.vendasAtuais = vendasAtuais;
-            filtrarHistoricoVendas();
-        } else {
-            vendasAtuais = [];
-            window.vendasAtuais = vendasAtuais;
-            tbody.innerHTML = `<tr><td colspan="10" class="td-empty">${data.mensagem || 'Nenhuma venda encontrada.'}</td></tr>`;
-        }
-    } catch (e) {
-        console.error('Erro histÃ³rico:', e);
-        tbody.innerHTML = `<tr><td colspan="10" class="td-empty" style="color:#ef4444;">Erro ao carregar histÃ³rico: ${e.message}</td></tr>`;
-    }
-}
-
-async function filtrarHistoricoVendas() {
-    const dataInicio = document.getElementById('filtroInicio').value;
-    const dataFim = document.getElementById('filtroFim').value;
-    const statusFiltro = document.getElementById('filtroStatusVendas').value;
-    const busca = (document.getElementById('filtroBuscaVendas').value || '').trim().toLowerCase();
-
-    let filtradas = [...vendasAtuais];
-
-    if (statusFiltro) {
-        filtradas = filtradas.filter(v => normalizarStatusVenda(v['Status'] || '') === statusFiltro);
-    }
-
-    if (busca) {
-        filtradas = filtradas.filter(v => {
-            const id = String(v['ID da Venda'] || '').toLowerCase();
-            const cliente = String(v['Cliente'] || '').toLowerCase();
-            return id.includes(busca) || cliente.includes(busca);
-        });
-    }
-
-    if (dataInicio) {
-        const inicio = new Date(`${dataInicio}T00:00:00`);
-        filtradas = filtradas.filter(v => {
-            const dataVenda = parseDataFiltroVenda(v['Data']);
-            return dataVenda && dataVenda >= inicio;
-        });
-    }
-
-    if (dataFim) {
-        const fim = new Date(`${dataFim}T23:59:59`);
-        filtradas = filtradas.filter(v => {
-            const dataVenda = parseDataFiltroVenda(v['Data']);
-            return dataVenda && dataVenda <= fim;
-        });
-    }
-
-    renderizarHistoricoVendasLocal(filtradas.slice(0, 40));
 }

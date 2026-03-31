@@ -10,8 +10,7 @@ window.Auth = (function () {
         ts: 'sv_ts',
         plano: 'sv_plano',
         perm: 'sv_permissoes',
-        whatsapp: 'sv_whatsapp',
-        caixas: 'sv_caixas'
+        whatsapp: 'sv_whatsapp'
     };
     const SESSION_MS = 8 * 3600 * 1000;
     let _cb = null;
@@ -28,25 +27,18 @@ window.Auth = (function () {
         const ts = parseInt(localStorage.getItem(K.ts) || '0');
         return (Date.now() - ts) < SESSION_MS;
     }
-    function saveSession(nome, nivel, plano, permissoes, empresa, whatsapp, caixas) {
+    function saveSession(nome, nivel, plano, permissoes, empresa, whatsapp) {
         localStorage.setItem(K.user, nome);
         localStorage.setItem(K.nivel, nivel);
         localStorage.setItem(K.plano, plano || 'Básico');
         localStorage.setItem(K.perm, JSON.stringify(permissoes || {}));
         if (empresa) localStorage.setItem('sv_empresa', empresa);
         if (whatsapp) localStorage.setItem(K.whatsapp, whatsapp);
-        if (caixas) localStorage.setItem(K.caixas, caixas);
         localStorage.setItem(K.ts, Date.now().toString());
     }
 
     function setUser(val) { localStorage.setItem(K.user, val); }
-    function setWhatsApp(val) { localStorage.setItem(K.whatsapp, val || ''); }
-    function getWhatsApp() { return localStorage.getItem(K.whatsapp) || ''; }
-    function getCaixas() {
-        const c = localStorage.getItem(K.caixas) || 'Dinheiro';
-        return c.split(',').map(item => item.trim()).filter(item => item !== '');
-    }
-    function getCaixasRaw() { return localStorage.getItem(K.caixas) || 'Dinheiro'; }
+    function setWhatsApp(val) { localStorage.setItem(K.whatsapp, val); }
 
     function getEmpresa() { return localStorage.getItem('sv_empresa') || 'Gestão&Controle'; }
 
@@ -66,7 +58,7 @@ window.Auth = (function () {
     function podeVerCusto() { return !isPlanBasico() && (isAdmin() || getPermissoes().visaoDono === true); }
 
     function logout() {
-        [K.user, K.nivel, K.ts, K.plano, K.perm, K.whatsapp, K.caixas].forEach(k => localStorage.removeItem(k));
+        [K.user, K.nivel, K.ts, K.plano, K.perm, K.whatsapp].forEach(k => localStorage.removeItem(k));
         localStorage.removeItem('sv_empresa');
         window.location.href = 'index.html';
     }
@@ -150,7 +142,7 @@ window.Auth = (function () {
             })
             .then(data => {
                 if (data.status === 'sucesso') {
-                    saveSession(data.nome, data.nivel, data.plano, data.permissoes, data.empresa, data.whatsapp, data.caixas);
+                    saveSession(data.nome, data.nivel, data.plano, data.permissoes, data.empresa, data.whatsapp);
                     const ov = document.getElementById('loginOverlay');
                     if (ov) ov.remove();
                     if (_cb) _cb();
@@ -238,7 +230,7 @@ window.Auth = (function () {
             .then(data => {
                 if (data.status === 'sucesso') {
                     // Inicializa a sessão local para o primeiro acesso
-                    saveSession(login, 'Admin', data.plano || 'Básico', {}, empresa, telefone, 'Dinheiro');
+                    saveSession(login, 'Admin', data.plano || 'Básico', {}, empresa, telefone);
                     const fa = document.getElementById('firstAccessOverlay');
                     if (fa) fa.remove();
                     showModal(_cb);
@@ -466,7 +458,6 @@ window.Auth = (function () {
         .then(r => r.json())
         .then(data => {
             if (data.status === 'sucesso' && data.plano) {
-                if (data.caixas) localStorage.setItem(K.caixas, data.caixas);
                 if (data.plano !== getPlan()) {
                     localStorage.setItem(K.plano, data.plano);
                     updateBadge();
@@ -507,7 +498,7 @@ window.Auth = (function () {
 
     return {
         getUser, getNivel, getWhatsApp, getPlan, getEmpresa, isPlanBasico, isAdmin, isLoggedIn,
-        getPermissoes, podeVerRelatorios, podeVenderFiado, podeVerCusto, getCaixas, getCaixasRaw,
+        getPermissoes, podeVerRelatorios, podeVenderFiado, podeVerCusto,
         logout, requireAdmin, requirePlan, applyUI, updateBadge,
         init, showModal, _doLogin, _doFirstAccess, setUser, setWhatsApp,
         syncPlanWithMaster: _syncPlanWithMaster
