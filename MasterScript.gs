@@ -1178,44 +1178,13 @@ function handleObterVendas(data) {
       todosDados = sheetVendas.getRange(2, 1, sheetVendas.getLastRow() - 1, sheetVendas.getLastColumn()).getValues();
     }
 
-    var dIni = data.dataInicio || data.filtroDataInicio || data.filtroInicio || null;
-    var dFim = data.dataFim || data.filtroDataFim || data.filtroFim || null;
-    var fStatus = data.status || data.filtroStatus || null;
-    var fBusca = data.busca || data.filtroBusca || null;
-
-    if (dIni && sheetHistorico && sheetHistorico.getLastRow() > 1) {
-      var dIniObj = new Date(dIni + 'T00:00:00');
-      if (dIniObj < limite) {
-        var dadosHist = sheetHistorico.getRange(2, 1, sheetHistorico.getLastRow() - 1, sheetHistorico.getLastColumn()).getValues();
-        todosDados = todosDados.concat(dadosHist);
-      }
-    }
-
-    // Filtragem no Servidor (Otimização para grandes volumes)
-    if (fStatus || fBusca || dIni || dFim) {
-        todosDados = todosDados.filter(function(row) {
-            // Data [1]
-            if (dIni) {
-                var rData = new Date(row[1]);
-                if (isNaN(rData)) return true; // Se não for data válida, mantém
-                if (rData < new Date(dIni + 'T00:00:00')) return false;
-            }
-            if (dFim) {
-                var rData = new Date(row[1]);
-                if (isNaN(rData)) return true;
-                if (rData > new Date(dFim + 'T23:59:59')) return false;
-            }
-            // Status [11]
-            if (fStatus && String(row[11]).toLowerCase() !== fStatus.toLowerCase()) return false;
-            // Busca (ID [0] ou Cliente [2])
-            if (fBusca) {
-                var b = fBusca.toLowerCase();
-                var matchId = String(row[0]).toLowerCase().includes(b);
-                var matchCli = String(row[2]).toLowerCase().includes(b);
-                if (!matchId && !matchCli) return false;
-            }
-            return true;
-        });
+    var limite = new Date();
+    limite.setDate(limite.getDate() - 60);
+    
+    var dIni = data.dataInicio ? new Date(data.dataInicio + 'T00:00:00') : null;
+    if (dIni && !isNaN(dIni) && dIni < limite && sheetHistorico && sheetHistorico.getLastRow() > 1) {
+      var dadosHist = sheetHistorico.getRange(2, 1, sheetHistorico.getLastRow() - 1, sheetHistorico.getLastColumn()).getValues();
+      todosDados = todosDados.concat(dadosHist);
     }
 
     var rows = todosDados.map(function(row) {

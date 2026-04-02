@@ -642,8 +642,23 @@ async function carregarHistoricoVendas(filtros = null, msgCarregando = 'Carregan
         const data = JSON.parse(text);
 
         if (data.status === 'sucesso' && data.dados) {
-            const arr = parseCompactData(data.dados);
-            const vendas = [...arr].reverse().slice(0, 40);
+            let vendasData = parseCompactData(data.dados);
+            
+            // Aplicar filtros locais se fornecidos e não forem de Data (pois Data já pode ter ido p/ back/paginação)
+            if (filtros) {
+                if (filtros.status) {
+                    vendasData = vendasData.filter(v => (v['Status'] || 'Concluída').includes(filtros.status));
+                }
+                if (filtros.busca) {
+                    const termo = filtros.busca.toLowerCase();
+                    vendasData = vendasData.filter(v => 
+                        String(v['Cliente'] || '').toLowerCase().includes(termo) ||
+                        String(v['ID da Venda'] || '').includes(termo)
+                    );
+                }
+            }
+
+            const vendas = [...vendasData].reverse().slice(0, 40);
             tbody.innerHTML = '';
             vendas.forEach(v => {
                 const id = v['ID da Venda'] || '';
