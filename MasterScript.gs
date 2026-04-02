@@ -197,6 +197,7 @@ function handleAutenticarOperador(data) {
         plano: configs["Plano"] || "Básico",
         empresa: configs["Empresa"] || "Minha Empresa",
         whatsapp: configs["Telefone"] || configs["WhatsApp"] || "",
+        caixas: configs["Caixas"] || "Dinheiro",
         permissoes: configs["Permissoes"] ? JSON.parse(configs["Permissoes"]) : {}
       });
     } else {
@@ -596,7 +597,8 @@ function handleRegistrarMestra(data) {
            // Agora sincronizamos também o Plano que veio da Mestra
            updateHorizontalConfig(configSheet, { 
              "UltimoAcesso": timestamp,
-             "Plano": resultMestra.plano 
+             "Plano": resultMestra.plano,
+             "Caixas": data.caixas || undefined
            });
          }
        } catch (e) {
@@ -607,7 +609,8 @@ function handleRegistrarMestra(data) {
     // Retornamos o plano e status reais para que o frontend possa se auto-atualizar (ex: upgrade para Pro)
     return responseSucessoMsg("Registro atualizado na Mestra.", {
       plano: resultMestra.plano,
-      status: resultMestra.status
+      status: resultMestra.status,
+      caixas: data.caixas || undefined
     });
   } catch (e) { return responseErro(e.message); }
 }
@@ -647,6 +650,7 @@ function handlePrimeiroAcesso(data) {
       "Telefone": data.whatsapp || "",
       "Plano": data.plano,
       "Status": "Ativo",
+      "Caixas": "Dinheiro",
       "UltimoAcesso": timestamp
     };
     
@@ -695,6 +699,11 @@ function handleAtualizarCredenciais(data) {
     if (data.novaSenha && data.novaSenha.trim() !== "") {
         credentialsMap["Senha"] = data.novaSenha;
         logParts.push("Senha alterada");
+    }
+
+    if (data.caixas) {
+        credentialsMap["Caixas"] = data.caixas;
+        logParts.push("Caixas personalizadas: " + data.caixas);
     }
     
     if (Object.keys(credentialsMap).length === 0) {
