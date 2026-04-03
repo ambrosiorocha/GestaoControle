@@ -1,4 +1,4 @@
-const CACHE_NAME = 'Gestão&Controle-v109';
+const CACHE_NAME = 'Gestão&Controle-v110';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',

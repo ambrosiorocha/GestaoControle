@@ -724,20 +724,29 @@ async function filtrarHistoricoVendas() {
     await execWithSpinner(btn, async () => {
         const dataInicio = document.getElementById('filtroInicio').value;
         const dataFim = document.getElementById('filtroFim').value;
+        const status = document.getElementById('filtroStatusVendas') ? document.getElementById('filtroStatusVendas').value : '';
+        const busca = document.getElementById('filtroBuscaVendas') ? document.getElementById('filtroBuscaVendas').value : '';
 
         let hint = 'Carregando...';
         if (dataInicio) {
             const dInicio = new Date(dataInicio + 'T00:00:00');
-            // Se buscar algo com mais de 60 dias, o script lerá a base de Historico
             if ((Date.now() - dInicio) > 60 * 24 * 60 * 60 * 1000) {
                 hint = 'Consultando Arquivos (> 60 dias)...';
             }
         }
 
         btn.textContent = hint;
-        await carregarHistoricoVendas({ dataInicio, dataFim }, hint);
+        await carregarHistoricoVendas({ dataInicio, dataFim, status, busca }, hint);
         btn.textContent = 'Buscar';
     });
+}
+
+function limparFiltrosVendas() {
+    document.getElementById('filtroInicio').value = '';
+    document.getElementById('filtroFim').value = '';
+    if(document.getElementById('filtroStatusVendas')) document.getElementById('filtroStatusVendas').value = '';
+    if(document.getElementById('filtroBuscaVendas')) document.getElementById('filtroBuscaVendas').value = '';
+    filtrarHistoricoVendas();
 }
 
 function toggleItens(btn) {

@@ -285,6 +285,9 @@ async function carregarFinanceiro() {
 
 // ==================== FILTROS ====================
 function aplicarFiltros() {
+    const filtroBusca = document.getElementById('filtroBusca') ? document.getElementById('filtroBusca').value.toLowerCase().trim() : '';
+    const filtroStatus = document.getElementById('filtroStatus') ? document.getElementById('filtroStatus').value : '';
+    const filtroCategoria = document.getElementById('filtroCategoria') ? document.getElementById('filtroCategoria').value : '';
     const filtroTipo = document.getElementById('filtroTipo').value;
     const dataInicio = document.getElementById('filtroDataInicio').value;
     const dataFim = document.getElementById('filtroDataFim').value;
@@ -297,8 +300,19 @@ function aplicarFiltros() {
         const isVenda = String(r.descricao).toLowerCase().includes('venda #') || (r.categoria && String(r.categoria).toLowerCase() === 'venda');
         return !(isEstornado && isVenda);
     });
-    // Removemos os filtros rígidos do Básico. Agora eles podem ver as próprias Receitas lançadas à vista.
 
+    if (filtroBusca) {
+        filtrados = filtrados.filter(r => 
+            String(r.descricao).toLowerCase().includes(filtroBusca) ||
+            String(r.id || r.ID).includes(filtroBusca)
+        );
+    }
+    if (filtroStatus) {
+        filtrados = filtrados.filter(r => r.status === filtroStatus);
+    }
+    if (filtroCategoria) {
+        filtrados = filtrados.filter(r => r.categoria === filtroCategoria);
+    }
     if (filtroTipo && !(typeof Auth !== 'undefined' && Auth.isPlanBasico())) {
         filtrados = filtrados.filter(r => r.tipo === filtroTipo);
     }
@@ -322,6 +336,9 @@ function aplicarFiltros() {
 }
 
 function limparFiltros() {
+    if(document.getElementById('filtroBusca')) document.getElementById('filtroBusca').value = '';
+    if(document.getElementById('filtroStatus')) document.getElementById('filtroStatus').value = '';
+    if(document.getElementById('filtroCategoria')) document.getElementById('filtroCategoria').value = '';
     document.getElementById('filtroDataInicio').value = '';
     document.getElementById('filtroDataFim').value = '';
     document.getElementById('filtroTipo').value = '';
@@ -397,11 +414,13 @@ function renderizarTabela(dados) {
             }
         }
 
+        const tipoMostrado = isPago ? (r.tipo === 'Receber' ? 'Receita' : 'Despesa') : r.tipo;
+
         row.innerHTML = `
             <td class="${tdClasses}">${registroId}</td>
             <td class="${tdClasses}">${r.descricao || ''}</td>
             <td class="${tdClasses} font-semibold">${formatCurrencyBRL(r.valor)}</td>
-            <td class="${tdClasses} ${tipoClass}">${r.tipo || ''}</td>
+            <td class="${tdClasses} ${tipoClass}">${tipoMostrado || ''}</td>
             <td class="${tdClasses}">${formatarData(r.vencimento)}</td>
             <td class="${tdClasses} ${statusClass}">${r.status || ''}</td>
             <td class="${tdClasses}">${r.categoria || ''}</td>
