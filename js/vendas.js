@@ -398,7 +398,10 @@ function cancelarEdicao() {
 async function salvarRascunho() {
     const btn = document.getElementById('btnRascunho');
     await execWithSpinner(btn, async () => {
-        if (carrinho.length === 0) { exibirStatus({ status: 'error', mensagem: '⚠️ Adicione itens ao pedido.' }); return; }
+        if (carrinho.length === 0) { 
+            exibirStatus({ status: 'error', mensagem: '⚠️ Adicione pelo menos 1 item ao pedido antes de salvar como rascunho.' }); 
+            return; 
+        }
         const payload = montarPayloadVenda();
         payload.formaPagamento = payload.formaPagamento || '-';
         payload.statusFinanceiro = 'Pendente';
@@ -552,7 +555,8 @@ function montarPayloadVenda() {
         totalComDesconto: total,
         formaPagamento: formaPagamentoSelecionada,
         caixa: caixaVal,
-        usuario: document.getElementById('usuario').value || 'Administrador'
+        usuario: document.getElementById('usuario').value || 'Administrador',
+        observacoes: document.getElementById('observacoesVenda') ? (document.getElementById('observacoesVenda').value.trim() || '') : ''
     };
 }
 
@@ -678,6 +682,7 @@ async function carregarHistoricoVendas(filtros = null, msgCarregando = 'Carregan
                     acoes = `
                         <button class="edit-btn" style="font-size:11px;" onclick="editarRascunho(${id}, '${encodeURIComponent(itensJSON)}')">&#9999;&#65039; Editar</button>
                         <button class="edit-btn" style="background:#16a34a;font-size:11px;" onclick="abrirModalFinalizarPendente(${id}, '${encodeURIComponent(itensJSON)}')">&#9989; Finalizar</button>
+                        <button class="delete-btn" style="background:#ef4444;font-size:11px;" onclick="excluirVendaPendente(${id})" title="Excluir rascunho vazio">&#128465;&#65039;</button>
                     `;
                 } else if (status === 'Concluída' || status === 'Concluda' || status === '') {
                     statusBadge = `<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;">&#9989; Concluída</span>`;
@@ -748,6 +753,37 @@ function limparFiltrosVendas() {
     if(document.getElementById('filtroBuscaVendas')) document.getElementById('filtroBuscaVendas').value = '';
     filtrarHistoricoVendas();
 }
+
+// ================================
+// EXCLUIR RASCUNHO/PENDENTE
+// ================================
+async function excluirVendaPendente(id) {
+    const ok = await CustomModal.confirm(
+        `🗑️ Excluir o rascunho <strong>#${id}</strong>? Esta ação não pode ser desfeita.`,
+        'Excluir', 'Cancelar'
+    );
+    if (!ok) return;
+
+    try {
+        const res = await fetch(window.MASTER_WEBHOOK_URL, {
+            method: 'POST',
+            body: JSON.stringify({ 
+                acao: 'excluirVenda', 
+                action: 'excluirVenda', 
+                spreadsheetId: window.SPREADSHEET_ID, 
+                data: { id } 
+            })
+        });
+        const data = await res.json();
+        exibirStatus(data);
+        if (data.status === 'sucesso') {
+            await carregarHistoricoVendas();
+        }
+    } catch (e) {
+        exibirStatus({ status: 'error', mensagem: 'Erro ao excluir: ' + e.message });
+    }
+}
+
 
 function toggleItens(btn) {
     const detail = btn.nextElementSibling;

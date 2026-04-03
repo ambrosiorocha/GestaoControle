@@ -239,6 +239,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:0.35rem;">Nova Senha</label>
                         <input type="password" id="novaSenhaConta" style="width:100%; padding:0.6rem; border:1.5px solid #e2e8f0; border-radius:0.5rem; outline:none; font-size:0.9rem;" placeholder="Deixe em branco para manter a atual">
                     </div>
+
+                    <!-- Campo Caixas: visível apenas para Admin/Pro -->
+                    <div id="campoCaixasWrap" style="display:none; margin-bottom:1.5rem;">
+                        <label style="display:block; font-size:0.82rem; font-weight:600; color:#475569; margin-bottom:0.35rem;">Nomes dos Caixas <span style="color:#94a3b8;">(separados por vírgula)</span></label>
+                        <input type="text" id="inputCaixasConta" style="width:100%; padding:0.6rem; border:1.5px solid #e2e8f0; border-radius:0.5rem; outline:none; font-size:0.85rem;" placeholder="Ex: Dinheiro, Conta Nubank, Conta BB">
+                        <p style="font-size:0.75rem; color:#94a3b8; margin-top:0.25rem;">O primeiro item será o padrão. Alterações são refletidas em todos os módulos.</p>
+                    </div>
                     
                     <button id="btnSalvarConta" onclick="salvarConfiguracoesConta()" style="width:100%; padding:0.75rem; background:#16a34a; color:white; border:none; border-radius:0.5rem; font-weight:700; cursor:pointer; transition:background 0.2s; box-shadow: 0 4px 12px rgba(22,163,74,0.3);">
                         ✅ Salvar Alterações
@@ -561,6 +568,19 @@ window.abrirModalConta = function () {
             inputSenha.value = '';
         }
 
+        // Mostra o campo de Caixas apenas para Admin ou Pro/Premium
+        const campoCaixas = document.getElementById('campoCaixasWrap');
+        const inputCaixas = document.getElementById('inputCaixasConta');
+        const isAdmin = typeof Auth !== 'undefined' && typeof Auth.isAdmin === 'function' && Auth.isAdmin();
+        const isPro = typeof Auth !== 'undefined' && !Auth.isPlanBasico();
+        if (campoCaixas && (isAdmin || isPro)) {
+            campoCaixas.style.display = 'block';
+            if (inputCaixas) {
+                const caixasAtuais = typeof Auth.getCaixas === 'function' ? Auth.getCaixas() : ['Dinheiro'];
+                inputCaixas.value = caixasAtuais.join(', ');
+            }
+        }
+
         const errBox = document.getElementById('contaError');
         if (errBox) {
             errBox.style.display = 'none';
@@ -588,6 +608,7 @@ window.salvarConfiguracoesConta = function () {
     const usuario = document.getElementById('novoUsuarioConta').value.trim();
     const whatsapp = document.getElementById('novoTelConta').value.trim();
     const senha = document.getElementById('novaSenhaConta').value.trim();
+    const caixasInput = document.getElementById('inputCaixasConta');
     const err = document.getElementById('contaError');
     const success = document.getElementById('contaSuccess');
     const btn = document.getElementById('btnSalvarConta');
@@ -616,6 +637,14 @@ window.salvarConfiguracoesConta = function () {
 
     if (senha !== "") {
         payload.novaSenha = senha;
+    }
+
+    // Salvar caixas se o campo estiver visível e preenchido
+    if (caixasInput && caixasInput.closest('#campoCaixasWrap') && caixasInput.closest('#campoCaixasWrap').style.display !== 'none') {
+        const caixasStr = caixasInput.value.trim();
+        if (caixasStr) {
+            payload.caixas = caixasStr.split(',').map(c => c.trim()).filter(c => c.length > 0);
+        }
     }
 
     fetch(window.MASTER_WEBHOOK_URL, {

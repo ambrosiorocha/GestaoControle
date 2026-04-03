@@ -29,7 +29,9 @@ function _verificarAcessoECarregar() {
     }
 
 
+    // Bloqueia APENAS se for plano Básico E não for Admin
     const isBasico = Auth.isPlanBasico();
+    const isAdmin = typeof Auth.isAdmin === 'function' && Auth.isAdmin();
     const plan = Auth.getPlan();
 
     // Atualiza badge de plano
@@ -37,14 +39,14 @@ function _verificarAcessoECarregar() {
     if (badgeWrap) {
         if (plan.toLowerCase() === 'premium') {
             badgeWrap.innerHTML = '<span class="plan-badge premium">⭐ Premium</span>';
-        } else if (!isBasico) {
+        } else if (!isBasico || isAdmin) {
             badgeWrap.innerHTML = '<span class="plan-badge pro">🚀 Pro</span>';
         } else {
             badgeWrap.innerHTML = '<span style="font-size:0.72rem;color:#64748b;">Plano Básico</span>';
         }
     }
 
-    if (isBasico) {
+    if (isBasico && !isAdmin) {
         // MATA-LOADING AGRESSIVO: Força o sumiço de qualquer indicador de carregamentos
         ['loading', 'planBadgeWrap'].forEach(id => {
             const el = document.getElementById(id);
