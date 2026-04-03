@@ -436,8 +436,9 @@ function renderizarTabela(dados) {
 
 // ==================== RESUMO KPIs ====================
 function atualizarResumo(dados) {
-    const totalPagar = dados.filter(r => r.tipo === 'Pagar' && r.status !== 'Pago').reduce((acc, r) => acc + parseFloat(r.valor || 0), 0);
-    const totalReceber = dados.filter(r => r.tipo === 'Receber' && r.status !== 'Pago').reduce((acc, r) => acc + parseFloat(r.valor || 0), 0);
+    // Calcula APENAS sobre os dados filtrados ("visíveis")
+    const totalPagar = dados.filter(r => r.tipo === 'Pagar').reduce((acc, r) => acc + parseFloat(r.valor || 0), 0);
+    const totalReceber = dados.filter(r => r.tipo === 'Receber').reduce((acc, r) => acc + parseFloat(r.valor || 0), 0);
     const saldo = totalReceber - totalPagar;
     document.getElementById('totalPagar').textContent = formatCurrencyBRL(totalPagar);
     document.getElementById('totalReceber').textContent = formatCurrencyBRL(totalReceber);
@@ -655,17 +656,20 @@ window.renderizarExtratosCaixa = function () {
         // No grid, não mostrar cards de bancos se for básico exceto "Dinheiro"
         if (isBsc && nomeCaixa !== 'Dinheiro') return;
 
-        const cardHtml = `
-            <div class="kpi-card" style="background:#f8fafc; border-bottom: 4px solid ${saldoFinal >= 0 ? '#16a34a' : '#ef4444'}">
-                <h4 style="color:#475569; font-weight:600; font-size:0.95rem;">🪙 ${nomeCaixa}</h4>
-                <p style="color:${saldoFinal >= 0 ? '#16a34a' : '#ef4444'}; font-size:1.5rem; font-weight:700;">${formatCurrencyBRL(saldoFinal)}</p>
-                <div style="display:flex; justify-content:space-between; margin-top:0.5rem; font-size:0.8rem;">
-                    <span style="color:#16a34a">Entrou: ${formatCurrencyBRL(entradas)}</span>
-                    <span style="color:#ef4444">Saiu: ${formatCurrencyBRL(saidas)}</span>
+        // REGRA 4: Só renderiza o Card se teve movimentação no período ou tem saldo diferente de zero
+        if (entradas > 0 || saidas > 0 || saldoFinal !== 0) {
+            const cardHtml = `
+                <div class="kpi-card" style="background:#f8fafc; border-bottom: 4px solid ${saldoFinal >= 0 ? '#16a34a' : '#ef4444'}">
+                    <h4 style="color:#475569; font-weight:600; font-size:0.95rem;">🪙 ${nomeCaixa}</h4>
+                    <p style="color:${saldoFinal >= 0 ? '#16a34a' : '#ef4444'}; font-size:1.5rem; font-weight:700;">${formatCurrencyBRL(saldoFinal)}</p>
+                    <div style="display:flex; justify-content:space-between; margin-top:0.5rem; font-size:0.8rem;">
+                        <span style="color:#16a34a">Entrou: ${formatCurrencyBRL(entradas)}</span>
+                        <span style="color:#ef4444">Saiu: ${formatCurrencyBRL(saidas)}</span>
+                    </div>
                 </div>
-            </div>
-        `;
-        kpiGrid.innerHTML += cardHtml;
+            `;
+            kpiGrid.innerHTML += cardHtml;
+        }
     });
 
     renderizarTabelaExtrato();
