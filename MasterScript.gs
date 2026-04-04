@@ -1213,14 +1213,22 @@ function handleObterOperadores(data) {
     if (!sheet || sheet.getLastRow() < 2) return responseSucessoMsg("Sucesso", { dados: [] });
     var values = sheet.getDataRange().getValues();
     var headers = values[0];
-    var colNome = headers.indexOf('Nome');
-    if (colNome === -1) colNome = headers.indexOf('Usuario'); 
     
-    var nomes = [];
+    var colNome = headers.indexOf('Nome') !== -1 ? headers.indexOf('Nome') : 0;
+    var colNivel = headers.indexOf('Nivel') !== -1 ? headers.indexOf('Nivel') : 1;
+    var colPlano = headers.indexOf('Plano') !== -1 ? headers.indexOf('Plano') : 3;
+    
+    var operadores = [];
     for (var i = 1; i < values.length; i++) {
-      if (values[i][colNome]) nomes.push(values[i][colNome]);
+      if (values[i][colNome]) {
+        operadores.push({
+          nome: values[i][colNome],
+          nivel: values[i][colNivel] || 'Operador',
+          plano: values[i][colPlano] || 'Básico'
+        });
+      }
     }
-    return responseSucessoMsg("Sucesso", { dados: nomes });
+    return responseSucessoMsg("Sucesso", { dados: operadores });
   } catch (e) { return responseErro(e.message); }
 }
 
