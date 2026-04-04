@@ -377,23 +377,49 @@ function handleObterFornecedores(data) {
 function handleSalvarOperador(data) {
   try {
     var ss = SpreadsheetApp.openById(data.spreadsheetId);
-    var sheet = ss.getSheetByName('Configurações');
-    if (!sheet) return responseErro("Aba Configurações não encontrada.");
+    var sheet = ss.getSheetByName('Operadores');
     
+    // Cria a aba se não existir
+    if (!sheet) {
+      sheet = ss.insertSheet('Operadores');
+      sheet.appendRow(['Nome', 'Login', 'Senha', 'Nível', 'Plano', 'WhatsApp', 'Permissões']);
+    }
+
     var vData = data.data || data;
-    var nome = String(vData.nome).trim();
+    var nome = String(vData.nome || vData.login).trim();
+    var login = String(vData.login || vData.nome).trim();
     var nivel = String(vData.nivel || 'Operador').trim();
     var senha = String(vData.senha || '1234');
     var plano = String(vData.plano || 'Pro').trim();
+    var sap = String(vData.whatsapp || '');
     var permissoes = JSON.stringify(vData.permissoes || { relatorios: true, fiado: true, visaoDono: false });
     
+    var todosDados = sheet.getDataRange().getValues();
+    var headers = todosDados[0];
+    var map = getHeaderMapping(headers);
+
+    // Verifica se já existe (pelo Login)
     if (sheet.getLastRow() > 1) {
-      var existentes = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues().map(function(r){ return r[0]; });
-      if (existentes.indexOf(nome) > -1) return responseErro("Operador \"" + nome + "\" já existe.");
+      var colLogin = map.login !== undefined ? map.login : 1;
+      for (var i = 1; i < todosDados.length; i++) {
+        if (String(todosDados[i][colLogin]).trim() === login) {
+           return responseErro("Operador com login \"" + login + "\" já existe.");
+        }
+      }
     }
-    sheet.appendRow([nome, nivel, senha, plano, permissoes]);
-    return responseSucesso("Operador \"" + nome + "\" adicionado!");
-  } catch (e) { return responseErro(e.message); }
+
+    var newRow = new Array(headers.length).fill('');
+    newRow[map.nome || 0] = nome;
+    newRow[map.login || 1] = login;
+    newRow[map.senha || 2] = senha;
+    newRow[map.nivel || 3] = nivel;
+    newRow[map.plano || 4] = plano;
+    newRow[map.whatsapp || 5] = sap;
+    newRow[map.permissoes || 6] = permissoes;
+
+    sheet.appendRow(newRow);
+    return responseSucesso("✅ Operador \"" + nome + "\" adicionado!");
+  } catch (e) { return responseErro("Erro ao salvar operador: " + e.message); }
 }
 
 function handleExcluirOperador(data) {
@@ -951,14 +977,14 @@ function handleLancarVenda(data) {
     rowData[map.id || 0] = novoId;
     rowData[map.data || 1] = data.data;
     rowData[map.cliente || 2] = data.cliente || 'Consumidor Interno';
-    rowData[map.itens || 3] = data.itens;
-    rowData[map.qtd || 4] = data.quantidadeVendida;
-    rowData[map.subtotal || 5] = data.subtotal;
-    rowData[map.desc_porc || 6] = data.descontoPercentual;
-    rowData[map.desc_real || 7] = data.descontoReal;
-    rowData[map.total || 8] = data.totalComDesconto;
-    rowData[map.pgto || 9] = data.formaPagamento || '';
-    rowData[map.usuario || 10] = data.usuario || '';
+    rowData[map.itens || 3] = String(data.itens || '');
+    rowData[map.qtd || 4] = parseFloat(data.quantidadeVendida) || 0;
+    rowData[map.subtotal || 5] = parseFloat(data.subtotal) || 0;
+    rowData[map.desc_porc || 6] = parseFloat(data.descontoPercentual) || 0;
+    rowData[map.desc_real || 7] = parseFloat(data.descontoReal) || 0;
+    rowData[map.total || 8] = parseFloat(data.totalComDesconto) || 0;
+    rowData[map.pgto || 9] = String(data.formaPagamento || '-');
+    rowData[map.usuario || 10] = String(data.usuario || '');
     rowData[map.status || 11] = 'Concluída';
     rowData[map.vencimento || 12] = vencimento;
     rowData[map.itensjson || 13] = JSON.stringify(data.itensList || []);
@@ -1016,16 +1042,16 @@ function handleSalvarRascunho(data) {
     rowData[map.id || 0] = finalId;
     rowData[map.data || 1] = vData.data;
     rowData[map.cliente || 2] = vData.cliente || 'Consumidor Interno';
-    rowData[map.itens || 3] = vData.itens;
-    rowData[map.qtd || 4] = vData.quantidadeVendida || 0;
-    rowData[map.subtotal || 5] = vData.subtotal || 0;
-    rowData[map.desc_porc || 6] = vData.descontoPercentual || 0;
-    rowData[map.desc_real || 7] = vData.descontoReal || 0;
-    rowData[map.total || 8] = vData.totalComDesconto || 0;
-    rowData[map.pgto || 9] = vData.formaPagamento || '';
-    rowData[map.usuario || 10] = vData.usuario || '';
+    rowData[map.itens || 3] = String(vData.itens || '');
+    rowData[map.qtd || 4] = parseFloat(vData.quantidadeVendida) || 0;
+    rowData[map.subtotal || 5] = parseFloat(vData.subtotal) || 0;
+    rowData[map.desc_porc || 6] = parseFloat(vData.descontoPercentual) || 0;
+    rowData[map.desc_real || 7] = parseFloat(vData.descontoReal) || 0;
+    rowData[map.total || 8] = parseFloat(vData.totalComDesconto) || 0;
+    rowData[map.pgto || 9] = String(vData.formaPagamento || '-');
+    rowData[map.usuario || 10] = String(vData.usuario || '');
     rowData[map.status || 11] = 'Pendente';
-    rowData[map.vencimento || 12] = ''; 
+    rowData[map.vencimento || 12] = vData.vencimento || ''; 
     rowData[map.itensjson || 13] = vData.ItensJSON ? vData.ItensJSON : JSON.stringify(vData.itensList || []);
 
     if (linhaVenda > -1) {
@@ -1125,14 +1151,14 @@ function handleFinalizarPendente(data) {
     rowData[map.id || 0] = idVenda;
     rowData[map.data || 1] = vData.data || existingRow[map.data || 1];
     rowData[map.cliente || 2] = vData.cliente || existingRow[map.cliente || 2] || 'Consumidor Interno';
-    rowData[map.itens || 3] = vData.itens || existingRow[map.itens || 3];
-    rowData[map.qtd || 4] = vData.quantidadeVendida !== undefined ? vData.quantidadeVendida : existingRow[map.qtd || 4];
-    rowData[map.subtotal || 5] = vData.subtotal !== undefined ? vData.subtotal : existingRow[map.subtotal || 5];
-    rowData[map.desc_porc || 6] = vData.descontoPercentual !== undefined ? vData.descontoPercentual : existingRow[map.desc_porc || 6];
-    rowData[map.desc_real || 7] = vData.descontoReal !== undefined ? vData.descontoReal : existingRow[map.desc_real || 7];
-    rowData[map.total || 8] = vData.totalComDesconto !== undefined ? vData.totalComDesconto : existingRow[map.total || 8];
-    rowData[map.pgto || 9] = vData.formaPagamento || existingRow[map.pgto || 9] || '-';
-    rowData[map.usuario || 10] = vData.usuario || existingRow[map.usuario || 10] || '';
+    rowData[map.itens || 3] = String(vData.itens || existingRow[map.itens || 3] || '');
+    rowData[map.qtd || 4] = vData.quantidadeVendida !== undefined ? parseFloat(vData.quantidadeVendida) : existingRow[map.qtd || 4];
+    rowData[map.subtotal || 5] = vData.subtotal !== undefined ? parseFloat(vData.subtotal) : existingRow[map.subtotal || 5];
+    rowData[map.desc_porc || 6] = vData.descontoPercentual !== undefined ? parseFloat(vData.descontoPercentual) : existingRow[map.desc_porc || 6];
+    rowData[map.desc_real || 7] = vData.descontoReal !== undefined ? parseFloat(vData.descontoReal) : existingRow[map.desc_real || 7];
+    rowData[map.total || 8] = vData.totalComDesconto !== undefined ? parseFloat(vData.totalComDesconto) : existingRow[map.total || 8];
+    rowData[map.pgto || 9] = String(vData.formaPagamento || existingRow[map.pgto || 9] || '-');
+    rowData[map.usuario || 10] = String(vData.usuario || existingRow[map.usuario || 10] || '');
     rowData[map.status || 11] = 'Concluída';
     rowData[map.vencimento || 12] = vencimento;
     rowData[map.itensjson || 13] = itensJSONFinal;
