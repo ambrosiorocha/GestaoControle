@@ -1015,19 +1015,23 @@ function handleSalvarRascunho(data) {
     var sheet = ss.getSheetByName('Vendas');
     if (!sheet) return responseErro("Aba 'Vendas' não encontrada.");
 
-    var vData = data.data || data;
-    var idRascunho = vData.id || vData.idRascunho || data.id || data.idRascunho;
+    // 1. Identificação da Venda (Update ou Insert)
+    var idRascunho = data.id || data.idRascunho;
     var todosDados = sheet.getDataRange().getValues();
     var linhaVenda = -1;
 
-    // Se tiver ID, tenta achar para ATUALIZAR
     if (idRascunho) {
       for (var i = 1; i < todosDados.length; i++) {
-        if (String(todosDados[i][0]) === String(idRascunho)) { linhaVenda = i + 1; break; }
+        if (String(todosDados[i][0]) === String(idRascunho)) {
+          linhaVenda = i + 1;
+          break;
+        }
       }
     }
 
+    // 2. Extração segura dos dados (evitando colisão com a chave 'data')
     var finalId = idRascunho && linhaVenda > -1 ? idRascunho : proximoIdVendas(sheet);
+    var itensJSONFinal = data.ItensJSON || (data.itensList ? JSON.stringify(data.itensList) : '[]');
     
     var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     var map = getHeaderMapping(headers);
@@ -1035,24 +1039,24 @@ function handleSalvarRascunho(data) {
     var rowData = new Array(Math.max(headers.length, 14)).fill('');
     // Se for edição, aproveitamos as colunas que não mudam
     if (linhaVenda > -1) {
-        var existingRow = sheet.getRange(linhaVenda, 1, 1, headers.length).getValues()[0];
+        var existingRow = todosDados[linhaVenda - 1]; // Usa todosDados que já temos
         rowData = existingRow.slice();
     }
 
     rowData[map.id || 0] = finalId;
-    rowData[map.data || 1] = vData.data;
-    rowData[map.cliente || 2] = vData.cliente || 'Consumidor Interno';
-    rowData[map.itens || 3] = String(vData.itens || '');
-    rowData[map.qtd || 4] = parseFloat(vData.quantidadeVendida) || 0;
-    rowData[map.subtotal || 5] = parseFloat(vData.subtotal) || 0;
-    rowData[map.desc_porc || 6] = parseFloat(vData.descontoPercentual) || 0;
-    rowData[map.desc_real || 7] = parseFloat(vData.descontoReal) || 0;
-    rowData[map.total || 8] = parseFloat(vData.totalComDesconto) || 0;
-    rowData[map.pgto || 9] = String(vData.formaPagamento || '-');
-    rowData[map.usuario || 10] = String(vData.usuario || '');
+    rowData[map.data || 1] = data.data || new Date().toLocaleDateString('pt-BR');
+    rowData[map.cliente || 2] = data.cliente || 'Consumidor Interno';
+    rowData[map.itens || 3] = String(data.itens || '');
+    rowData[map.qtd || 4] = parseFloat(data.quantidadeVendida) || 0;
+    rowData[map.subtotal || 5] = parseFloat(data.subtotal) || 0;
+    rowData[map.desc_porc || 6] = parseFloat(data.descontoPercentual) || 0;
+    rowData[map.desc_real || 7] = parseFloat(data.descontoReal) || 0;
+    rowData[map.total || 8] = parseFloat(data.totalComDesconto) || 0;
+    rowData[map.pgto || 9] = String(data.formaPagamento || '-');
+    rowData[map.usuario || 10] = String(data.usuario || '');
     rowData[map.status || 11] = 'Pendente';
-    rowData[map.vencimento || 12] = vData.vencimento || ''; 
-    rowData[map.itensjson || 13] = vData.ItensJSON ? vData.ItensJSON : JSON.stringify(vData.itensList || []);
+    rowData[map.vencimento || 12] = data.vencimento || ''; 
+    rowData[map.itensjson || 13] = itensJSONFinal;
 
     if (linhaVenda > -1) {
       sheet.getRange(linhaVenda, 1, 1, rowData.length).setValues([rowData]);
@@ -1117,24 +1121,19 @@ function handleFinalizarPendente(data) {
     var sheetFin = ss.getSheetByName('Financeiro');
     if (!sheetVendas) return responseErro("Aba 'Vendas' não encontrada.");
 
-    var vData = data.data || data;
-    var idVenda = vData.id || vData.idVenda || vData.idRascunho || data.id || data.idVenda || data.idRascunho;
-
+    var idVenda = data.id || data.idVenda || data.idRascunho;
     var todosDados = sheetVendas.getDataRange().getValues();
     var headers = todosDados[0];
     var map = getHeaderMapping(headers);
     var linhaVenda = -1;
 
     for (var i = 1; i < todosDados.length; i++) {
-      if (String(todosDados[i][map.id || 0]) === String(idVenda)) { 
-        linhaVenda = i + 1; 
-        break; 
-      }
+        if (String(todosDados[i][0]) === String(idVenda)) { linhaVenda = i + 1; break; }
     }
+    if (linhaVenda === -1) return responseErro("Venda #" + idVenda + " não encontrada para finalizar.");
 
-    if (linhaVenda === -1) return responseErro("Venda #" + idVenda + " não encontrada para finalização.");
-
-    var itensJSONFinal = vData.ItensJSON || (vData.itensList ? JSON.stringify(vData.itensList) : todosDados[linhaVenda - 1][map.itensjson || 13]);
+    var existingRow = todosDados[linhaVenda - 1];
+    var itensJSONFinal = data.ItensJSON || (data.itensList ? JSON.stringify(data.itensList) : (existingRow[map.itensjson || 13] || '[]'));
 
     var itensListForStock = [];
     try { itensListForStock = JSON.parse(itensJSONFinal); } catch(e) { itensListForStock = []; }
@@ -1142,29 +1141,29 @@ function handleFinalizarPendente(data) {
     var erro = baixarEstoqueItens(sheetProdutos, itensListForStock);
     if (erro) return responseErro(erro);
 
-    var vencimento = vData.vencimento || vData.data || todosDados[linhaVenda - 1][map.vencimento || 12];
-    var statusFin  = vData.statusFinanceiro || 'Pendente';
+    var vencimento = data.vencimento || data.data || existingRow[map.vencimento || 12];
+    var statusFin  = data.statusFinanceiro || 'Pendente';
 
-    var existingRow = todosDados[linhaVenda - 1];
     var rowData = existingRow.slice();
-
+    
     rowData[map.id || 0] = idVenda;
-    rowData[map.data || 1] = vData.data || existingRow[map.data || 1];
-    rowData[map.cliente || 2] = vData.cliente || existingRow[map.cliente || 2] || 'Consumidor Interno';
-    rowData[map.itens || 3] = String(vData.itens || existingRow[map.itens || 3] || '');
-    rowData[map.qtd || 4] = vData.quantidadeVendida !== undefined ? parseFloat(vData.quantidadeVendida) : existingRow[map.qtd || 4];
-    rowData[map.subtotal || 5] = vData.subtotal !== undefined ? parseFloat(vData.subtotal) : existingRow[map.subtotal || 5];
-    rowData[map.desc_porc || 6] = vData.descontoPercentual !== undefined ? parseFloat(vData.descontoPercentual) : existingRow[map.desc_porc || 6];
-    rowData[map.desc_real || 7] = vData.descontoReal !== undefined ? parseFloat(vData.descontoReal) : existingRow[map.desc_real || 7];
-    rowData[map.total || 8] = vData.totalComDesconto !== undefined ? parseFloat(vData.totalComDesconto) : existingRow[map.total || 8];
-    rowData[map.pgto || 9] = String(vData.formaPagamento || existingRow[map.pgto || 9] || '-');
-    rowData[map.usuario || 10] = String(vData.usuario || existingRow[map.usuario || 10] || '');
+    rowData[map.data || 1] = data.data || existingRow[map.data || 1];
+    rowData[map.cliente || 2] = data.cliente || existingRow[map.cliente || 2] || 'Consumidor Interno';
+    rowData[map.itens || 3] = String(data.itens || existingRow[map.itens || 3] || '');
+    rowData[map.qtd || 4] = data.quantidadeVendida !== undefined ? parseFloat(data.quantidadeVendida) : existingRow[map.qtd || 4];
+    rowData[map.subtotal || 5] = data.subtotal !== undefined ? parseFloat(data.subtotal) : existingRow[map.subtotal || 5];
+    rowData[map.desc_porc || 6] = data.descontoPercentual !== undefined ? parseFloat(data.descontoPercentual) : existingRow[map.desc_porc || 6];
+    rowData[map.desc_real || 7] = data.descontoReal !== undefined ? parseFloat(data.descontoReal) : existingRow[map.desc_real || 7];
+    rowData[map.total || 8] = data.totalComDesconto !== undefined ? parseFloat(data.totalComDesconto) : existingRow[map.total || 8];
+    rowData[map.pgto || 9] = String(data.formaPagamento || existingRow[map.pgto || 9] || '-');
+    rowData[map.usuario || 10] = String(data.usuario || existingRow[map.usuario || 10] || '');
     rowData[map.status || 11] = 'Concluída';
     rowData[map.vencimento || 12] = vencimento;
     rowData[map.itensjson || 13] = itensJSONFinal;
 
     sheetVendas.getRange(linhaVenda, 1, 1, rowData.length).setValues([rowData]);
 
+    // Financeiro
     if (sheetFin) {
       var lastRowFin = sheetFin.getLastRow();
       var nextIdFin = lastRowFin > 1 ? (parseInt(sheetFin.getRange(lastRowFin, 1).getValue()) || 0) + 1 : 1;
@@ -1174,7 +1173,7 @@ function handleFinalizarPendente(data) {
           sheetFin.getRange(j + 1, 6).setValue('Cancelado (Substituído)');
         }
       }
-      sheetFin.appendRow([nextIdFin, 'Venda #' + idVenda + ' - ' + rowData[2], rowData[8], 'Receber', vencimento, statusFin, 'Venda', idVenda]);
+      sheetFin.appendRow([nextIdFin, 'Venda #' + idVenda + ' - ' + rowData[map.cliente || 2], rowData[map.total || 8], 'Receber', vencimento, statusFin, 'Venda', idVenda]);
     }
 
     return responseSucesso("✅ Venda #" + idVenda + " finalizada!");
