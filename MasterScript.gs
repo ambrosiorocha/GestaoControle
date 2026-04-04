@@ -1000,7 +1000,7 @@ function handleSalvarRascunho(data) {
       vData.usuario || '',
       'Pendente',
       '', 
-      JSON.stringify(vData.itensList || [])
+      vData.ItensJSON ? vData.ItensJSON : JSON.stringify(vData.itensList || [])
     ];
 
     if (linhaVenda > -1) {
@@ -1076,11 +1076,19 @@ function handleFinalizarPendente(data) {
     }
     if (linhaVenda === -1) return responseErro("Venda/Rascunho #" + idVenda + " não encontrada para finalização.");
 
-    var itensList = [];
-    try { itensList = JSON.parse(todosDados[linhaVenda - 1][13] || '[]'); } catch(e) {}
-    if (vData.itensList && vData.itensList.length > 0) itensList = vData.itensList;
+    var itensJSONFinal = vData.ItensJSON;
+    if (!itensJSONFinal) {
+      if (vData.itensList) {
+        itensJSONFinal = JSON.stringify(vData.itensList);
+      } else {
+        itensJSONFinal = todosDados[linhaVenda - 1][13] || '[]';
+      }
+    }
+    
+    var itensListForStock = [];
+    try { itensListForStock = JSON.parse(itensJSONFinal); } catch(e) { itensListForStock = []; }
 
-    var erro = baixarEstoqueItens(sheetProdutos, itensList);
+    var erro = baixarEstoqueItens(sheetProdutos, itensListForStock);
     if (erro) return responseErro(erro);
 
     var vencimento = vData.vencimento || vData.data || todosDados[linhaVenda - 1][1];
@@ -1100,7 +1108,7 @@ function handleFinalizarPendente(data) {
       vData.usuario || todosDados[linhaVenda - 1][10] || '',
       'Concluída',
       vencimento,
-      JSON.stringify(itensList)
+      itensJSONFinal
     ];
 
     sheetVendas.getRange(linhaVenda, 1, 1, rowData.length).setValues([rowData]);
