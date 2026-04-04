@@ -290,45 +290,47 @@
         iniciarEquipe();
 
         // ── Carregar lista de operadores ──────────────────────────────
-        function carregarOperadores() {
+        async function carregarOperadores() {
             const list = document.getElementById('opList');
             if (!list) return;
             list.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Carregando...</p>';
 
-            fetch(window.MASTER_WEBHOOK_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'obterOperadores', spreadsheetId: window.SPREADSHEET_ID })
-            })
-                .then(r => r.json())
-                .then(data => {
-                    const ops = (data.status === 'sucesso' && Array.isArray(data.dados)) ? data.dados : [];
-                    window._opsCount = ops.length;
-                    if (!ops.length) {
-                        list.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Nenhum operador cadastrado.</p>';
-                        return;
-                    }
-                    list.innerHTML = ops.map(op => {
-                        const nivelBadge = (op.nivel || '').toLowerCase() === 'admin' ? 'admin' : 'operador';
-                        const planoClass = 'plan-' + (op.plano || 'pro').toLowerCase().replace(/[áã]/g, 'a');
-                        const planoLbl = (op.plano || 'Pro').charAt(0).toUpperCase() + (op.plano || 'Pro').slice(1);
-                        const isCurrentUser = op.nome === Auth.getUser();
-                        return `
-                <div class="op-item">
-                    <div class="op-info">
-                        <span class="op-nome">${op.nome}${isCurrentUser ? ' <span style="font-size:0.68rem;color:#94a3b8;">(você)</span>' : ''}</span>
-                        <div class="op-meta">
-                            <span class="op-badge ${nivelBadge}">${op.nivel || 'Operador'}</span>
-                            <span class="op-badge ${planoClass}">Plano ${planoLbl}</span>
-                        </div>
-                    </div>
-                    ${!isCurrentUser ? `<button class="op-del-btn" onclick="excluirOperador('${op.nome}')">🗑 Remover</button>` : ''}
-                </div>`;
-                    }).join('');
-                })
-                .catch((e) => {
-                    console.error("Erro ao carregar operadores da Mestra:", e);
-                    list.innerHTML = '<p class="text-sm text-red-400 text-center py-4">Erro ao carregar operadores.</p>';
+            try {
+                const res = await fetch(window.MASTER_WEBHOOK_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'obterOperadores', spreadsheetId: window.SPREADSHEET_ID })
                 });
+                
+                const data = await res.json();
+                const ops = (data.status === 'sucesso' && Array.isArray(data.dados)) ? data.dados : [];
+                window._opsCount = ops.length;
+
+                if (!ops.length) {
+                    list.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">Nenhum operador cadastrado.</p>';
+                    return;
+                }
+
+                list.innerHTML = ops.map(op => {
+                    const nivelBadge = (op.nivel || '').toLowerCase() === 'admin' ? 'admin' : 'operador';
+                    const planoClass = 'plan-' + (op.plano || 'pro').toLowerCase().replace(/[áã]/g, 'a');
+                    const planoLbl = (op.plano || 'Pro').charAt(0).toUpperCase() + (op.plano || 'Pro').slice(1);
+                    const isCurrentUser = op.nome === Auth.getUser();
+                    return `
+                        <div class="op-item">
+                            <div class="op-info">
+                                <span class="op-nome">${op.nome}${isCurrentUser ? ' <span style="font-size:0.68rem;color:#94a3b8;">(você)</span>' : ''}</span>
+                                <div class="op-meta">
+                                    <span class="op-badge ${nivelBadge}">${op.nivel || 'Operador'}</span>
+                                    <span class="op-badge ${planoClass}">Plano ${planoLbl}</span>
+                                </div>
+                            </div>
+                            ${!isCurrentUser ? `<button class="op-del-btn" onclick="excluirOperador('${op.nome}')">🗑 Remover</button>` : ''}
+                        </div>`;
+                }).join('');
+            } catch (e) {
+                console.error("Erro ao carregar operadores da Mestra:", e);
+                list.innerHTML = '<p class="text-sm text-red-400 text-center py-4">Erro ao carregar operadores. Verifique a conexão.</p>';
+            }
         }
 
         // ── Salvar novo operador ──────────────────────────────────────

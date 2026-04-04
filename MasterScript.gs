@@ -53,6 +53,9 @@ function doPost(e) {
         if (resPlano.status === 'erro') return responseErro(resPlano.mensagem);
         return handleLancarVenda(data);
 
+      case 'obterOperadores':
+        return handleObterOperadores(data);
+
       case 'salvarRascunho':
         return handleSalvarRascunho(data);
 
@@ -935,23 +938,32 @@ function handleLancarVenda(data) {
     var erroEstoque = baixarEstoqueItens(sheetProdutos, data.itensList);
     if (erroEstoque) return responseErro(erroEstoque);
 
+
     // 2. Gravar Venda
     var novoId = proximoIdVendas(sheetVendas);
     var vencimento = data.vencimento || data.data;
     var statusFin = data.statusFinanceiro || 'Pendente';
 
-    sheetVendas.appendRow([
-      novoId, data.data,
-      data.cliente || 'Consumidor Interno',
-      data.itens, data.quantidadeVendida,
-      data.subtotal, data.descontoPercentual, data.descontoReal,
-      data.totalComDesconto,
-      data.formaPagamento || '',
-      data.usuario || '',
-      'Concluda',
-      vencimento,
-      JSON.stringify(data.itensList || [])
-    ]);
+    var headers = sheetVendas.getRange(1, 1, 1, sheetVendas.getLastColumn()).getValues()[0];
+    var map = getHeaderMapping(headers);
+
+    var rowData = new Array(Math.max(headers.length, 14)).fill('');
+    rowData[map.id || 0] = novoId;
+    rowData[map.data || 1] = data.data;
+    rowData[map.cliente || 2] = data.cliente || 'Consumidor Interno';
+    rowData[map.itens || 3] = data.itens;
+    rowData[map.qtd || 4] = data.quantidadeVendida;
+    rowData[map.subtotal || 5] = data.subtotal;
+    rowData[map.desc_porc || 6] = data.descontoPercentual;
+    rowData[map.desc_real || 7] = data.descontoReal;
+    rowData[map.total || 8] = data.totalComDesconto;
+    rowData[map.pgto || 9] = data.formaPagamento || '';
+    rowData[map.usuario || 10] = data.usuario || '';
+    rowData[map.status || 11] = 'Concluída';
+    rowData[map.vencimento || 12] = vencimento;
+    rowData[map.itensjson || 13] = JSON.stringify(data.itensList || []);
+
+    sheetVendas.appendRow(rowData);
 
     // 3. Financeiro
     if (sheetFin) {
@@ -990,18 +1002,31 @@ function handleSalvarRascunho(data) {
     }
 
     var finalId = idRascunho && linhaVenda > -1 ? idRascunho : proximoIdVendas(sheet);
-    var rowData = [
-      finalId, vData.data,
-      vData.cliente || 'Consumidor Interno',
-      vData.itens, vData.quantidadeVendida,
-      vData.subtotal, vData.descontoPercentual, vData.descontoReal,
-      vData.totalComDesconto,
-      vData.formaPagamento || '-',
-      vData.usuario || '',
-      'Pendente',
-      '', 
-      vData.ItensJSON ? vData.ItensJSON : JSON.stringify(vData.itensList || [])
-    ];
+    
+    var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    var map = getHeaderMapping(headers);
+
+    var rowData = new Array(Math.max(headers.length, 14)).fill('');
+    // Se for edição, aproveitamos as colunas que não mudam
+    if (linhaVenda > -1) {
+        var existingRow = sheet.getRange(linhaVenda, 1, 1, headers.length).getValues()[0];
+        rowData = existingRow.slice();
+    }
+
+    rowData[map.id || 0] = finalId;
+    rowData[map.data || 1] = vData.data;
+    rowData[map.cliente || 2] = vData.cliente || 'Consumidor Interno';
+    rowData[map.itens || 3] = vData.itens;
+    rowData[map.qtd || 4] = vData.quantidadeVendida || 0;
+    rowData[map.subtotal || 5] = vData.subtotal || 0;
+    rowData[map.desc_porc || 6] = vData.descontoPercentual || 0;
+    rowData[map.desc_real || 7] = vData.descontoReal || 0;
+    rowData[map.total || 8] = vData.totalComDesconto || 0;
+    rowData[map.pgto || 9] = vData.formaPagamento || '';
+    rowData[map.usuario || 10] = vData.usuario || '';
+    rowData[map.status || 11] = 'Pendente';
+    rowData[map.vencimento || 12] = ''; 
+    rowData[map.itensjson || 13] = vData.ItensJSON ? vData.ItensJSON : JSON.stringify(vData.itensList || []);
 
     if (linhaVenda > -1) {
       sheet.getRange(linhaVenda, 1, 1, rowData.length).setValues([rowData]);
@@ -1094,22 +1119,26 @@ function handleFinalizarPendente(data) {
     var vencimento = vData.vencimento || vData.data || todosDados[linhaVenda - 1][1];
     var statusFin  = vData.statusFinanceiro || 'Pendente';
     
-    var rowData = [
-      idVenda, 
-      vData.data || todosDados[linhaVenda - 1][1],
-      vData.cliente || todosDados[linhaVenda - 1][2] || 'Consumidor Interno',
-      vData.itens || todosDados[linhaVenda - 1][3], 
-      vData.quantidadeVendida !== undefined ? vData.quantidadeVendida : todosDados[linhaVenda - 1][4],
-      vData.subtotal !== undefined ? vData.subtotal : todosDados[linhaVenda - 1][5], 
-      vData.descontoPercentual !== undefined ? vData.descontoPercentual : todosDados[linhaVenda - 1][6], 
-      vData.descontoReal !== undefined ? vData.descontoReal : todosDados[linhaVenda - 1][7],
-      vData.totalComDesconto !== undefined ? vData.totalComDesconto : todosDados[linhaVenda - 1][8],
-      vData.formaPagamento || todosDados[linhaVenda - 1][9] || '-',
-      vData.usuario || todosDados[linhaVenda - 1][10] || '',
-      'Concluída',
-      vencimento,
-      itensJSONFinal
-    ];
+    var headers = sheetVendas.getRange(1, 1, 1, sheetVendas.getLastColumn()).getValues()[0];
+    var map = getHeaderMapping(headers);
+
+    var existingRow = todosDados[linhaVenda - 1];
+    var rowData = existingRow.slice(); // Mantém dados de colunas extras
+
+    rowData[map.id || 0] = idVenda;
+    rowData[map.data || 1] = vData.data || existingRow[map.data || 1];
+    rowData[map.cliente || 2] = vData.cliente || existingRow[map.cliente || 2] || 'Consumidor Interno';
+    rowData[map.itens || 3] = vData.itens || existingRow[map.itens || 3];
+    rowData[map.qtd || 4] = vData.quantidadeVendida !== undefined ? vData.quantidadeVendida : existingRow[map.qtd || 4];
+    rowData[map.subtotal || 5] = vData.subtotal !== undefined ? vData.subtotal : existingRow[map.subtotal || 5];
+    rowData[map.desc_porc || 6] = vData.descontoPercentual !== undefined ? vData.descontoPercentual : existingRow[map.desc_porc || 6];
+    rowData[map.desc_real || 7] = vData.descontoReal !== undefined ? vData.descontoReal : existingRow[map.desc_real || 7];
+    rowData[map.total || 8] = vData.totalComDesconto !== undefined ? vData.totalComDesconto : existingRow[map.total || 8];
+    rowData[map.pgto || 9] = vData.formaPagamento || existingRow[map.pgto || 9] || '-';
+    rowData[map.usuario || 10] = vData.usuario || existingRow[map.usuario || 10] || '';
+    rowData[map.status || 11] = 'Concluída';
+    rowData[map.vencimento || 12] = vencimento;
+    rowData[map.itensjson || 13] = itensJSONFinal;
 
     sheetVendas.getRange(linhaVenda, 1, 1, rowData.length).setValues([rowData]);
 
@@ -1217,27 +1246,77 @@ function handleObterProdutosUnicos(data) {
 function handleObterOperadores(data) {
   try {
     var ss = SpreadsheetApp.openById(data.spreadsheetId);
-    var sheet = ss.getSheetByName('Configurações');
-    if (!sheet || sheet.getLastRow() < 2) return responseSucessoMsg("Sucesso", { dados: [] });
+    var sheet = ss.getSheetByName('Operadores');
+    
+    if (!sheet) {
+      sheet = ss.insertSheet('Operadores');
+      sheet.appendRow(['Nome', 'Login', 'Senha', 'Nível', 'Plano', 'WhatsApp', 'Permissões']);
+      return responseSucessoMsg("Sucesso", { dados: [] });
+    }
+
+    if (sheet.getLastRow() < 2) return responseSucessoMsg("Sucesso", { dados: [] });
+    
     var values = sheet.getDataRange().getValues();
     var headers = values[0];
-    
-    var colNome = headers.indexOf('Nome') !== -1 ? headers.indexOf('Nome') : 0;
-    var colNivel = headers.indexOf('Nivel') !== -1 ? headers.indexOf('Nivel') : 1;
-    var colPlano = headers.indexOf('Plano') !== -1 ? headers.indexOf('Plano') : 3;
+    var map = getHeaderMapping(headers);
     
     var operadores = [];
     for (var i = 1; i < values.length; i++) {
-      if (values[i][colNome]) {
+      var row = values[i];
+      if (row[map.nome || 0]) {
         operadores.push({
-          nome: values[i][colNome],
-          nivel: values[i][colNivel] || 'Operador',
-          plano: values[i][colPlano] || 'Básico'
+          nome: row[map.nome || 0],
+          login: row[map.login || 1],
+          nivel: row[map.nivel || 3] || 'Operador',
+          plano: row[map.plano || 4] || 'Básico',
+          whatsapp: row[map.whatsapp || 5]
         });
       }
     }
     return responseSucessoMsg("Sucesso", { dados: operadores });
-  } catch (e) { return responseErro(e.message); }
+  } catch (e) { return responseErro("Erro ao obter operadores: " + e.message); }
+}
+
+function getHeaderMapping(headers) {
+  var map = {};
+  headers.forEach(function(h, i) {
+    var key = String(h).toLowerCase().trim()
+      .replace(/ /g, '_')
+      .replace(/%/g, 'porc')
+      .replace(/\$/g, 'real')
+      .replace(/[áàâã]/g, 'a')
+      .replace(/[éèê]/g, 'e')
+      .replace(/[íìî]/g, 'i')
+      .replace(/[óòôõ]/g, 'o')
+      .replace(/[úùû]/g, 'u')
+      .replace(/ç/g, 'c');
+    
+    // Normalizações específicas baseadas nas colunas do ERP
+    if (key.indexOf('id') !== -1 && key.length <= 3) map.id = i;
+    else if (key === 'data') map.data = i;
+    else if (key === 'cliente') map.cliente = i;
+    else if (key === 'itens' || key === 'produtos') map.itens = i;
+    else if (key === 'qtd' || key === 'quantidade' || key === 'quantidade_vendida') map.qtd = i;
+    else if (key === 'subtotal') map.subtotal = i;
+    else if (key.indexOf('desc') !== -1 && (key.indexOf('porc') !== -1 || key.indexOf('%') !== -1)) map.desc_porc = i;
+    else if (key.indexOf('desc') !== -1 && (key.indexOf('real') !== -1 || key.indexOf('r$') !== -1)) map.desc_real = i;
+    else if (key === 'total' || key === 'total_com_desconto') map.total = i;
+    else if (key === 'pgto' || key === 'forma_pagamento') map.pgto = i;
+    else if (key === 'usuario' || key === 'vendedor' || key === 'operador') map.usuario = i;
+    else if (key === 'status') map.status = i;
+    else if (key === 'vencimento') map.vencimento = i;
+    else if (key === 'itensjson' || key === 'itens_json') map.itensjson = i;
+    
+    // Mapeamento para Operadores
+    else if (key === 'nome') map.nome = i;
+    else if (key === 'login') map.login = i;
+    else if (key === 'senha') map.senha = i;
+    else if (key === 'nivel') map.nivel = i;
+    else if (key === 'plano') map.plano = i;
+    else if (key === 'whatsapp' || key === 'telefone') map.whatsapp = i;
+    else if (key === 'permissoes') map.permissoes = i;
+  });
+  return map;
 }
 
 function handleObterClientes(data) {
