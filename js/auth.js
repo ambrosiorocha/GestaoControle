@@ -10,7 +10,8 @@ window.Auth = (function () {
         ts: 'sv_ts',
         plano: 'sv_plano',
         perm: 'sv_permissoes',
-        whatsapp: 'sv_whatsapp'
+        whatsapp: 'sv_whatsapp',
+        caixas: 'sv_caixas'
     };
     const SESSION_MS = 8 * 3600 * 1000;
     let _cb = null;
@@ -39,6 +40,23 @@ window.Auth = (function () {
 
     function setUser(val) { localStorage.setItem(K.user, val); }
     function setWhatsApp(val) { localStorage.setItem(K.whatsapp, val); }
+
+    // Caixas: lista de formas de recebimento configuradas pelo Admin
+    function getCaixas() {
+        try {
+            const raw = localStorage.getItem(K.caixas);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch (e) { /* ignora */ }
+        return ['Dinheiro'];
+    }
+    function setCaixas(arr) {
+        if (Array.isArray(arr) && arr.length > 0) {
+            localStorage.setItem(K.caixas, JSON.stringify(arr));
+        }
+    }
 
     function getEmpresa() { return localStorage.getItem('sv_empresa') || 'Gestão&Controle'; }
 
@@ -500,6 +518,7 @@ window.Auth = (function () {
         getUser, getNivel, getWhatsApp, getPlan, getEmpresa, isPlanBasico, isAdmin, isLoggedIn,
         getPermissoes, podeVerRelatorios, podeVenderFiado, podeVerCusto,
         logout, requireAdmin, requirePlan, applyUI, updateBadge,
+        getCaixas, setCaixas,
         init, showModal, _doLogin, _doFirstAccess, setUser, setWhatsApp,
         syncPlanWithMaster: _syncPlanWithMaster
     };

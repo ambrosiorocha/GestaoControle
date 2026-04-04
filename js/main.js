@@ -661,8 +661,12 @@ window.salvarConfiguracoesConta = function () {
                 // Atualiza sessão local
                 Auth.setUser(usuario);
                 if (payload.whatsapp) Auth.setWhatsApp(whatsapp);
+                // Persiste os caixas no localStorage para pré-preencher o campo no próximo acesso
+                if (payload.caixas && typeof Auth.setCaixas === 'function') {
+                    Auth.setCaixas(payload.caixas);
+                }
 
-                document.getElementById('userBadge').textContent = usuario;
+                Auth.updateBadge();
 
                 // Fecha o modal elegantemente após 2 segundos
                 setTimeout(() => {

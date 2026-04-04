@@ -68,6 +68,12 @@ function _verificarAcessoECarregar() {
         return;
     }
 
+    // Pro ou Premium — garante que a Upgrade Wall está oculta
+    const wallEl = document.getElementById('upgradeWall');
+    if (wallEl) wallEl.style.setProperty('display', 'none', 'important');
+    const wallContainer = document.querySelector('.upgrade-wall-container');
+    if (wallContainer) wallContainer.style.setProperty('display', 'none', 'important');
+
     // Pro ou Premium — exibe botão de privacidade e carrega dados
     const privBtn = document.getElementById('privacyToggle');
     if (privBtn) privBtn.style.display = 'flex';
