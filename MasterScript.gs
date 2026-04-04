@@ -62,6 +62,9 @@ function doPost(e) {
       case 'estornarVenda':
         return handleEstornarVenda(data);
       
+      case 'reabrirVenda':
+        return handleReabrirVenda(data);
+      
       case 'listarProdutos':
       case 'obterProdutos':
         return handleObterProdutos(data);
@@ -1064,7 +1067,6 @@ function handleFinalizarPendente(data) {
     if (!sheetVendas) return responseErro("Aba 'Vendas' não encontrada.");
 
     var vData = data.data || data;
-    // Blindagem de ID: Captura de múltiplas chaves
     var idVenda = vData.id || vData.idVenda || vData.idRascunho || data.id || data.idVenda || data.idRascunho || data.numero;
     
     var todosDados = sheetVendas.getDataRange().getValues();
@@ -1083,26 +1085,94 @@ function handleFinalizarPendente(data) {
 
     var vencimento = vData.vencimento || vData.data || todosDados[linhaVenda - 1][1];
     var statusFin  = vData.statusFinanceiro || 'Pendente';
-    var total      = parseFloat(todosDados[linhaVenda - 1][8]) || 0;
-    var cliente    = todosDados[linhaVenda - 1][2] || 'Consumidor';
-    var pgto       = vData.formaPagamento || todosDados[linhaVenda - 1][9] || '';
+    
+    var rowData = [
+      idVenda, 
+      vData.data || todosDados[linhaVenda - 1][1],
+      vData.cliente || todosDados[linhaVenda - 1][2] || 'Consumidor Interno',
+      vData.itens || todosDados[linhaVenda - 1][3], 
+      vData.quantidadeVendida !== undefined ? vData.quantidadeVendida : todosDados[linhaVenda - 1][4],
+      vData.subtotal !== undefined ? vData.subtotal : todosDados[linhaVenda - 1][5], 
+      vData.descontoPercentual !== undefined ? vData.descontoPercentual : todosDados[linhaVenda - 1][6], 
+      vData.descontoReal !== undefined ? vData.descontoReal : todosDados[linhaVenda - 1][7],
+      vData.totalComDesconto !== undefined ? vData.totalComDesconto : todosDados[linhaVenda - 1][8],
+      vData.formaPagamento || todosDados[linhaVenda - 1][9] || '-',
+      vData.usuario || todosDados[linhaVenda - 1][10] || '',
+      'Concluída',
+      vencimento,
+      JSON.stringify(itensList)
+    ];
 
-    sheetVendas.getRange(linhaVenda, 10).setValue(pgto);
-    sheetVendas.getRange(linhaVenda, 12).setValue('Concluída');
-    sheetVendas.getRange(linhaVenda, 13).setValue(vencimento);
+    sheetVendas.getRange(linhaVenda, 1, 1, rowData.length).setValues([rowData]);
 
     if (sheetFin) {
       var lastRowFin = sheetFin.getLastRow();
       var nextIdFin = lastRowFin > 1 ? (parseInt(sheetFin.getRange(lastRowFin, 1).getValue()) || 0) + 1 : 1;
+      
+      var dadosFin = sheetFin.getDataRange().getValues();
+      for (var j = 1; j < dadosFin.length; j++) {
+        if (String(dadosFin[j][7]) === String(idVenda) && dadosFin[j][6] === 'Venda' && dadosFin[j][5] === 'Pendente') {
+          sheetFin.getRange(j + 1, 6).setValue('Cancelado (Substituído)');
+        }
+      }
+
       sheetFin.appendRow([
         nextIdFin,
-        'Venda #' + idVenda + ' - ' + cliente,
-        total, 'Receber', vencimento, statusFin, 'Venda', idVenda
+        'Venda #' + idVenda + ' - ' + rowData[2],
+        rowData[8], 'Receber', vencimento, statusFin, 'Venda', idVenda
       ]);
     }
     return responseSucesso("✅ Venda #" + idVenda + " finalizada!");
   } catch (e) {
     return responseErro("Erro ao finalizar pendente: " + e.message);
+  }
+}
+
+function handleReabrirVenda(data) {
+  try {
+    var ss = SpreadsheetApp.openById(data.spreadsheetId);
+    var sheetVendas = ss.getSheetByName('Vendas');
+    var sheetProdutos = ss.getSheetByName('Produtos');
+    var sheetFin = ss.getSheetByName('Financeiro');
+    if (!sheetVendas) return responseErro("Aba 'Vendas' não encontrada.");
+
+    var idVenda = data.id || data.idVenda;
+    var justificativa = data.justificativa || "Sem justificativa informada";
+    if (!idVenda) return responseErro("ID não informado.");
+
+    var todosDados = sheetVendas.getDataRange().getValues();
+    var linhaVenda = -1;
+    for (var i = 1; i < todosDados.length; i++) {
+        if (String(todosDados[i][0]) === String(idVenda)) { linhaVenda = i + 1; break; }
+    }
+    if (linhaVenda === -1) return responseErro("Venda #" + idVenda + " não encontrada na Mestra.");
+
+    var statusAtual = String(todosDados[linhaVenda - 1][11]).trim();
+    if (statusAtual === 'Concluída' || statusAtual === 'Concluda') {
+        var itensList = [];
+        try { itensList = JSON.parse(todosDados[linhaVenda - 1][13] || '[]'); } catch(e) {}
+        devolverEstoqueItens(sheetProdutos, itensList);
+    }
+    
+    sheetVendas.getRange(linhaVenda, 12).setValue('Pendente');
+
+    if (sheetFin && sheetFin.getLastRow() > 1) {
+      var dadosFin = sheetFin.getDataRange().getValues();
+      for (var f = 1; f < dadosFin.length; f++) {
+        // Encontra o financeiro da venda que precisa ser cancelado (caso seja estornado, já estará cancelado, mas forçamos)
+        if (String(dadosFin[f][7]) === String(idVenda) && dadosFin[f][6] === 'Venda') {
+           var descAntiga = String(dadosFin[f][1]);
+           if (descAntiga.indexOf('(Reabertura:') === -1) {
+              sheetFin.getRange(f + 1, 2).setValue(descAntiga + ' (Reabertura: ' + justificativa + ')');
+           }
+           sheetFin.getRange(f + 1, 6).setValue('Cancelado');
+        }
+      }
+    }
+
+    return responseSucesso("🔓 Venda #" + idVenda + " reaberta! Verifique os itens no rascunho.");
+  } catch (e) {
+    return responseErro("Erro ao reabrir venda: " + e.message);
   }
 }
 

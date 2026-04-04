@@ -400,6 +400,9 @@ function cancelarEdicao() {
 // SALVAR RASCUNHO (Pendente — sem estoque, sem financeiro)
 // ================================
 async function salvarRascunho() {
+    // Captura estática do carrinho no momento exato do clique para evitar data binding quebrado
+    const carrinhoSnapshot = JSON.parse(JSON.stringify(carrinho));
+
     const btn = document.getElementById('btnRascunho');
     await execWithSpinner(btn, async () => {
         // Rascunho (Pendente) pode ser salvo SEM itens — apenas Cliente é obrigatório.
@@ -410,11 +413,11 @@ async function salvarRascunho() {
             return;
         }
 
-        const payload = montarPayloadVenda();
+        const payload = montarPayloadVenda(carrinhoSnapshot);
         payload.formaPagamento = payload.formaPagamento || '-';
         payload.statusFinanceiro = 'Pendente';
 
-        const action = vendaEditandoId ? 'finalizarPendente' : 'salvarRascunho';
+        const action = 'salvarRascunho';
         if (vendaEditandoId) payload.id = vendaEditandoId;
 
         try {
@@ -536,16 +539,16 @@ function atualizarModalTotais() {
 // ================================
 // MONTAR PAYLOAD VENDA (compartilhado)
 // ================================
-function montarPayloadVenda() {
-    const subtotalBruto = carrinho.reduce((s, i) => s + (i.quantidade * i.preco), 0);
-    const subtotalItens = carrinho.reduce((s, i) => s + i.subtotal, 0);
+function montarPayloadVenda(cartList = carrinho) {
+    const subtotalBruto = cartList.reduce((s, i) => s + (i.quantidade * i.preco), 0);
+    const subtotalItens = cartList.reduce((s, i) => s + i.subtotal, 0);
     const descontoItens = subtotalBruto - subtotalItens;
     const descontoGeralEl = document.getElementById('descontoGeralModal');
     const descontoGeral = descontoGeralEl ? (parseFloat(descontoGeralEl.value) || 0) : 0;
     const descontoTotal = descontoItens + descontoGeral;
     const total = Math.max(0, subtotalBruto - descontoTotal);
-    const qtdTotal = carrinho.reduce((s, i) => s + i.quantidade, 0);
-    const itensStr = carrinho.map(i => {
+    const qtdTotal = cartList.reduce((s, i) => s + i.quantidade, 0);
+    const itensStr = cartList.map(i => {
         const d = i.desconto > 0 ? ` (-${i.desconto.toFixed(1)}%)` : '';
         return `${i.nome} (${i.quantidade}${d})`;
     }).join(', ');
@@ -555,8 +558,8 @@ function montarPayloadVenda() {
         data: new Date().toLocaleDateString('pt-BR'),
         cliente: document.getElementById('cliente').value || 'Consumidor Interno',
         itens: itensStr,
-        itensList: carrinho,
-        ItensJSON: JSON.stringify(carrinho),
+        itensList: cartList,
+        ItensJSON: JSON.stringify(cartList),
         quantidadeVendida: qtdTotal,
         subtotal: subtotalBruto,
         descontoPercentual: subtotalBruto > 0 ? ((descontoTotal / subtotalBruto) * 100).toFixed(2) : 0,
@@ -574,15 +577,18 @@ function montarPayloadVenda() {
 // CONFIRMAR VENDA (Finalizar — Concluída)
 // ================================
 async function confirmarVenda() {
+    // Captura estática do carrinho no exato milissegundo do clique
+    const carrinhoSnapshot = JSON.parse(JSON.stringify(carrinho));
+
     const btn = document.getElementById('btnConfirmarVenda');
     await execWithSpinner(btn, async () => {
         if (!formaPagamentoSelecionada) { await CustomModal.alert('Selecione a forma de pagamento.', 'OK'); return; }
-        if (carrinho.length === 0) { fecharModal(); return; }
+        if (carrinhoSnapshot.length === 0) { fecharModal(); return; }
 
         const prazoResult = await calcularVencimentoStatus();
         if (!prazoResult) return;
 
-        const payload = montarPayloadVenda();
+        const payload = montarPayloadVenda(carrinhoSnapshot);
         payload.vencimento = prazoResult.vencimento;
         payload.statusFinanceiro = prazoResult.status;
 
@@ -606,7 +612,7 @@ async function confirmarVenda() {
                     data: payload.data,
                     cliente: payload.cliente,
                     operador: document.getElementById('usuario').value,
-                    itens: [...carrinho],
+                    itens: carrinhoSnapshot,
                     formaPagamento: formaPagamentoSelecionada,
                     vencimento: prazoResult.vencimento,
                     statusPgto: prazoResult.status,
@@ -697,13 +703,15 @@ async function carregarHistoricoVendas(filtros = null, msgCarregando = 'Carregan
                     statusBadge = `<span style="background:#d1fae5;color:#065f46;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;">&#9989; Concluída</span>`;
                     const _bscCon = typeof Auth !== 'undefined' && Auth.isPlanBasico();
                     const _printCon = _bscCon ? '' : `<button title="Reimprimir cupom" data-print-btn style="background:none;border:1px solid #cbd5e1;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:13px;" onclick="reimprimirCupom(${id},'${encodeURIComponent(itensJSON)}','${encodeURIComponent(cliente)}','${encodeURIComponent(operador)}','${encodeURIComponent(pgto)}',${total},'${dataV}')">&#128424;&#65039;</button>`;
-                    acoes = `${_printCon}${whatsappBtn}<button class="delete-btn" style="background:#f59e0b;color:#fff;font-size:11px;" data-admin-btn onclick="confirmarEstorno(${id})">&#8617;&#65039; Estornar</button>`;
+                    const btnReabrir = `<button class="edit-btn" style="background:#8b5cf6;color:#fff;font-size:11px;margin-right:2px;" data-admin-btn onclick="reabrirVendaJustificada(${id}, '${encodeURIComponent(itensJSON)}')">&#128275; Reabrir</button>`;
+                    acoes = `${btnReabrir}${_printCon}${whatsappBtn}<button class="delete-btn" style="background:#f59e0b;color:#fff;font-size:11px;" data-admin-btn onclick="confirmarEstorno(${id})">&#8617;&#65039; Estornar</button>`;
                 } else if (status === 'Estornada') {
                     statusBadge = `<span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;">&#8617;&#65039; Estornada</span>`;
                     const _basico2 = typeof Auth !== 'undefined' && Auth.isPlanBasico();
                     const _printBtn2 = _basico2 ? '' : `<button title="Reimprimir cupom" data-print-btn style="background:none;border:1px solid #cbd5e1;border-radius:4px;padding:2px 6px;cursor:pointer;font-size:13px;" onclick="reimprimirCupom(${id},'${encodeURIComponent(itensJSON)}','${encodeURIComponent(cliente)}','${encodeURIComponent(operador)}','${encodeURIComponent(pgto)}',${total},'${dataV}')">&#128424;&#65039;</button>`;
                     const btnReaproveitarX = `<button title="Copiar itens para nova venda (Reaproveitar)" class="edit-btn" style="background:none; border:1px solid #3b82f6; padding:3px 6px; font-size:13px; margin-right:2px; border-radius:4px; cursor:pointer;" onclick="reaproveitarVenda('${encodeURIComponent(itensJSON)}')">&#128260;</button>`;
-                    acoes = `${btnReaproveitarX}${_printBtn2}`;
+                    const btnReabrir = `<button class="edit-btn" style="background:#8b5cf6;color:#fff;font-size:11px;margin-right:2px;" data-admin-btn onclick="reabrirVendaJustificada(${id}, '${encodeURIComponent(itensJSON)}')">&#128275; Reabrir</button>`;
+                    acoes = `${btnReabrir}${btnReaproveitarX}${_printBtn2}`;
                 }
 
 
@@ -829,6 +837,45 @@ function editarRascunho(id, itensJSONEncoded) {
         exibirStatus({ status: 'success', mensagem: msg });
     } catch (e) {
         exibirStatus({ status: 'error', mensagem: 'Erro ao carregar rascunho: ' + e.message });
+    }
+}
+
+// ================================
+// REABERTURA JUSTIFICADA (Mantém o ID e exige conciliação)
+// ================================
+async function reabrirVendaJustificada(id, itensJSONEncoded) {
+    const justificativa = prompt(`⚠️ REABERTURA DE VENDA #${id}\n\nUma venda reaberta precisará ser finalizada novamente para gravar o novo registro financeiro.\n\nInforme a JUSTIFICATIVA (mín. 5 caracteres):`);
+    
+    if (justificativa === null) {
+        return; // Usuário cancelou o prompt
+    }
+    
+    const justificativaTrimada = justificativa.trim();
+    if (justificativaTrimada.length < 5 || justificativaTrimada.toLowerCase() === 'sem justificativa') {
+        exibirStatus({ status: 'error', mensagem: '❌ Reabertura cancelada: Justificativa obrigatória (mínimo 5 caracteres).' });
+        return;
+    }
+
+    try {
+        exibirStatus({ status: 'info', mensagem: 'Reabrindo venda e devolvendo estoque...' });
+        const res = await fetch(window.MASTER_WEBHOOK_URL, {
+            method: 'POST',
+            body: JSON.stringify({ 
+                action: 'reabrirVenda', 
+                idVenda: id, 
+                justificativa: justificativaTrimada,
+                spreadsheetId: window.SPREADSHEET_ID 
+            })
+        });
+        const data = await res.json();
+        exibirStatus(data);
+        if (data.status === 'sucesso') {
+            await carregarHistoricoVendas();
+            // Abre o carrinho com o ID e Itens atuais para editar e salvar novamente
+            editarRascunho(id, itensJSONEncoded);
+        }
+    } catch (e) {
+        exibirStatus({ status: 'error', mensagem: 'Erro ao reabrir: ' + e.message });
     }
 }
 
