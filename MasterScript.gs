@@ -1074,89 +1074,79 @@ function handleEstornarVenda(data) {
         if (String(dadosFin[i][7]) === String(idVenda) && dadosFin[i][3] === 'Receber') {
           sheetFin.getRange(i + 1, 6).setValue('Estornado');
           break;
-        }
-      }
-    }
-    return responseSucesso("↩️ Venda #" + idVenda + " estornada. Estoque devolvido.");
-  } catch (e) {
-    return responseErro("Erro ao estornar venda: " + e.message);
+  function handleFinalizarPendente(data) {
+try {
+var ss = SpreadsheetApp.openById(data.spreadsheetId);
+var sheetVendas = ss.getSheetByName('Vendas');
+var sheetProdutos = ss.getSheetByName('Produtos');
+var sheetFin = ss.getSheetByName('Financeiro');
+if (!sheetVendas) return responseErro("Aba 'Vendas' não encontrada.");
+
+var vData = data.data || data;
+var idVenda = vData.id || vData.idVenda || vData.idRascunho || data.id || data.idVenda || data.idRascunho;
+
+var todosDados = sheetVendas.getDataRange().getValues();
+var headers = todosDados[0];
+var map = getHeaderMapping(headers);
+var linhaVenda = -1;
+
+for (var i = 1; i < todosDados.length; i++) {
+  if (String(todosDados[i][map.id || 0]) === String(idVenda)) { 
+    linhaVenda = i + 1; 
+    break; 
   }
 }
 
-function handleFinalizarPendente(data) {
-  try {
-    var ss = SpreadsheetApp.openById(data.spreadsheetId);
-    var sheetVendas = ss.getSheetByName('Vendas');
-    var sheetProdutos = ss.getSheetByName('Produtos');
-    var sheetFin = ss.getSheetByName('Financeiro');
-    if (!sheetVendas) return responseErro("Aba 'Vendas' não encontrada.");
+if (linhaVenda === -1) return responseErro("Venda #" + idVenda + " não encontrada para finalização.");
 
-    var vData = data.data || data;
-    var idVenda = vData.id || vData.idVenda || vData.idRascunho || data.id || data.idVenda || data.idRascunho || data.numero;
-    
-    var todosDados = sheetVendas.getDataRange().getValues();
-    var linhaVenda = -1;
-    for (var i = 1; i < todosDados.length; i++) {
-      if (String(todosDados[i][0]) === String(idVenda)) { linhaVenda = i + 1; break; }
+var itensJSONFinal = vData.ItensJSON || (vData.itensList ? JSON.stringify(vData.itensList) : todosDados[linhaVenda - 1][map.itensjson || 13]);
+
+var itensListForStock = [];
+try { itensListForStock = JSON.parse(itensJSONFinal); } catch(e) { itensListForStock = []; }
+
+var erro = baixarEstoqueItens(sheetProdutos, itensListForStock);
+if (erro) return responseErro(erro);
+
+var vencimento = vData.vencimento || vData.data || todosDados[linhaVenda - 1][map.vencimento || 12];
+var statusFin  = vData.statusFinanceiro || 'Pendente';
+
+var existingRow = todosDados[linhaVenda - 1];
+var rowData = existingRow.slice();
+
+rowData[map.id || 0] = idVenda;
+rowData[map.data || 1] = vData.data || existingRow[map.data || 1];
+rowData[map.cliente || 2] = vData.cliente || existingRow[map.cliente || 2] || 'Consumidor Interno';
+rowData[map.itens || 3] = vData.itens || existingRow[map.itens || 3];
+rowData[map.qtd || 4] = vData.quantidadeVendida !== undefined ? vData.quantidadeVendida : existingRow[map.qtd || 4];
+rowData[map.subtotal || 5] = vData.subtotal !== undefined ? vData.subtotal : existingRow[map.subtotal || 5];
+rowData[map.desc_porc || 6] = vData.descontoPercentual !== undefined ? vData.descontoPercentual : existingRow[map.desc_porc || 6];
+rowData[map.desc_real || 7] = vData.descontoReal !== undefined ? vData.descontoReal : existingRow[map.desc_real || 7];
+rowData[map.total || 8] = vData.totalComDesconto !== undefined ? vData.totalComDesconto : existingRow[map.total || 8];
+rowData[map.pgto || 9] = vData.formaPagamento || existingRow[map.pgto || 9] || '-';
+rowData[map.usuario || 10] = vData.usuario || existingRow[map.usuario || 10] || '';
+rowData[map.status || 11] = 'Concluída';
+rowData[map.vencimento || 12] = vencimento;
+rowData[map.itensjson || 13] = itensJSONFinal;
+
+sheetVendas.getRange(linhaVenda, 1, 1, rowData.length).setValues([rowData]);
+
+if (sheetFin) {
+  var lastRowFin = sheetFin.getLastRow();
+  var nextIdFin = lastRowFin > 1 ? (parseInt(sheetFin.getRange(lastRowFin, 1).getValue()) || 0) + 1 : 1;
+  var dadosFin = sheetFin.getDataRange().getValues();
+  for (var j = 1; j < dadosFin.length; j++) {
+    if (String(dadosFin[j][7]) === String(idVenda) && dadosFin[j][6] === 'Venda' && dadosFin[j][5] === 'Pendente') {
+      sheetFin.getRange(j + 1, 6).setValue('Cancelado (Substituído)');
     }
-    if (linhaVenda === -1) return responseErro("Venda/Rascunho #" + idVenda + " não encontrada para finalização.");
+  }
+  sheetFin.appendRow([nextIdFin, 'Venda #' + idVenda + ' - ' + rowData[2], rowData[8], 'Receber', vencimento, statusFin, 'Venda', idVenda]);
+}
 
-    var itensJSONFinal = vData.ItensJSON;
-    if (!itensJSONFinal) {
-      if (vData.itensList) {
-        itensJSONFinal = JSON.stringify(vData.itensList);
-      } else {
-        itensJSONFinal = todosDados[linhaVenda - 1][13] || '[]';
-      }
-    }
-    
-    var itensListForStock = [];
-    try { itensListForStock = JSON.parse(itensJSONFinal); } catch(e) { itensListForStock = []; }
-
-    var erro = baixarEstoqueItens(sheetProdutos, itensListForStock);
-    if (erro) return responseErro(erro);
-
-    var vencimento = vData.vencimento || vData.data || todosDados[linhaVenda - 1][1];
-    var statusFin  = vData.statusFinanceiro || 'Pendente';
-    
-    var headers = sheetVendas.getRange(1, 1, 1, sheetVendas.getLastColumn()).getValues()[0];
-    var map = getHeaderMapping(headers);
-
-    var existingRow = todosDados[linhaVenda - 1];
-    var rowData = existingRow.slice(); // Mantém dados de colunas extras
-
-    rowData[map.id || 0] = idVenda;
-    rowData[map.data || 1] = vData.data || existingRow[map.data || 1];
-    rowData[map.cliente || 2] = vData.cliente || existingRow[map.cliente || 2] || 'Consumidor Interno';
-    rowData[map.itens || 3] = vData.itens || existingRow[map.itens || 3];
-    rowData[map.qtd || 4] = vData.quantidadeVendida !== undefined ? vData.quantidadeVendida : existingRow[map.qtd || 4];
-    rowData[map.subtotal || 5] = vData.subtotal !== undefined ? vData.subtotal : existingRow[map.subtotal || 5];
-    rowData[map.desc_porc || 6] = vData.descontoPercentual !== undefined ? vData.descontoPercentual : existingRow[map.desc_porc || 6];
-    rowData[map.desc_real || 7] = vData.descontoReal !== undefined ? vData.descontoReal : existingRow[map.desc_real || 7];
-    rowData[map.total || 8] = vData.totalComDesconto !== undefined ? vData.totalComDesconto : existingRow[map.total || 8];
-    rowData[map.pgto || 9] = vData.formaPagamento || existingRow[map.pgto || 9] || '-';
-    rowData[map.usuario || 10] = vData.usuario || existingRow[map.usuario || 10] || '';
-    rowData[map.status || 11] = 'Concluída';
-    rowData[map.vencimento || 12] = vencimento;
-    rowData[map.itensjson || 13] = itensJSONFinal;
-
-    sheetVendas.getRange(linhaVenda, 1, 1, rowData.length).setValues([rowData]);
-
-    if (sheetFin) {
-      var lastRowFin = sheetFin.getLastRow();
-      var nextIdFin = lastRowFin > 1 ? (parseInt(sheetFin.getRange(lastRowFin, 1).getValue()) || 0) + 1 : 1;
-      
-      var dadosFin = sheetFin.getDataRange().getValues();
-      for (var j = 1; j < dadosFin.length; j++) {
-        if (String(dadosFin[j][7]) === String(idVenda) && dadosFin[j][6] === 'Venda' && dadosFin[j][5] === 'Pendente') {
-          sheetFin.getRange(j + 1, 6).setValue('Cancelado (Substituído)');
-        }
-      }
-
-      sheetFin.appendRow([
-        nextIdFin,
-        'Venda #' + idVenda + ' - ' + rowData[2],
-        rowData[8], 'Receber', vencimento, statusFin, 'Venda', idVenda
+return responseSucesso("✅ Venda #" + idVenda + " finalizada!");
+} catch (e) {
+return responseErro("Erro ao finalizar: " + e.message);
+}
+}imento, statusFin, 'Venda', idVenda
       ]);
     }
     return responseSucesso("✅ Venda #" + idVenda + " finalizada!");
