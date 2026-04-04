@@ -556,6 +556,7 @@ function montarPayloadVenda() {
         cliente: document.getElementById('cliente').value || 'Consumidor Interno',
         itens: itensStr,
         itensList: carrinho,
+        ItensJSON: JSON.stringify(carrinho),
         quantidadeVendida: qtdTotal,
         subtotal: subtotalBruto,
         descontoPercentual: subtotalBruto > 0 ? ((descontoTotal / subtotalBruto) * 100).toFixed(2) : 0,
