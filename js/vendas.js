@@ -348,7 +348,11 @@ function renderizarCarrinho() {
         tbody.innerHTML = '<tr><td colspan="6" class="carrinho-vazio">Nenhum item adicionado ainda.</td></tr>';
         document.getElementById('totalCarrinho').textContent = 'R$ 0,00';
         document.getElementById('qtdItensLabel').textContent = '0 item(ns)';
-        setBtns(false);
+        // Rascunho pode ser salvo sem itens — deixar o botão de Rascunho habilitado
+        const btnRascunho = document.getElementById('btnRascunho');
+        const btnFinalizar = document.getElementById('btnFinalizar');
+        if (btnRascunho) { btnRascunho.disabled = false; btnRascunho.style.opacity = '1'; btnRascunho.style.cursor = 'pointer'; }
+        if (btnFinalizar) { btnFinalizar.disabled = true; btnFinalizar.style.opacity = '0.55'; btnFinalizar.style.cursor = 'not-allowed'; }
         return;
     }
 
@@ -398,10 +402,14 @@ function cancelarEdicao() {
 async function salvarRascunho() {
     const btn = document.getElementById('btnRascunho');
     await execWithSpinner(btn, async () => {
-        if (carrinho.length === 0) { 
-            exibirStatus({ status: 'error', mensagem: '⚠️ Adicione pelo menos 1 item ao pedido antes de salvar como rascunho.' }); 
-            return; 
+        // Rascunho (Pendente) pode ser salvo SEM itens — apenas Cliente é obrigatório.
+        // A validação de itens só é aplicada ao FINALIZAR (Pago/Concluído).
+        const clienteVal = document.getElementById('cliente') ? document.getElementById('cliente').value : '';
+        if (!clienteVal) {
+            exibirStatus({ status: 'error', mensagem: '⚠️ Selecione um Cliente para salvar o rascunho.' });
+            return;
         }
+
         const payload = montarPayloadVenda();
         payload.formaPagamento = payload.formaPagamento || '-';
         payload.statusFinanceiro = 'Pendente';
@@ -797,21 +805,27 @@ function toggleItens(btn) {
 function editarRascunho(id, itensJSONEncoded) {
     try {
         const itensJSON = decodeURIComponent(itensJSONEncoded);
-        const itens = JSON.parse(itensJSON);
-        if (!itens || itens.length === 0) {
-            exibirStatus({ status: 'error', mensagem: 'ItensJSON vazio — não é possível editar este rascunho.' });
-            return;
-        }
-        carrinho = itens.map(i => ({
-            nome: i.nome, preco: parseFloat(i.preco) || 0,
-            quantidade: parseFloat(i.quantidade) || 0,
-            desconto: parseFloat(i.desconto) || 0,
-            subtotal: parseFloat(i.subtotal) || 0
-        }));
+        // Fallback seguro: rascunho pode ter sido salvo SEM itens (apenas com Cliente)
+        let itens = [];
+        try { itens = JSON.parse(itensJSON) || []; } catch(e) { itens = []; }
+
+        // Carrega os itens (pode ser array vazio — o modal abre normalmente)
+        carrinho = itens
+            .filter(i => i && i.nome)
+            .map(i => ({
+                nome: i.nome, preco: parseFloat(i.preco) || 0,
+                quantidade: parseFloat(i.quantidade) || 0,
+                desconto: parseFloat(i.desconto) || 0,
+                subtotal: parseFloat(i.subtotal) || 0
+            }));
+
         vendaEditandoId = id;
         renderizarCarrinho();
         abrirSlideoverVenda();
-        exibirStatus({ status: 'success', mensagem: `✏️ Rascunho #${id} carregado. Edite e finalize.` });
+        const msg = carrinho.length === 0
+            ? `✏️ Rascunho #${id} carregado (sem itens). Adicione produtos e salve.`
+            : `✏️ Rascunho #${id} carregado. Edite e finalize.`;
+        exibirStatus({ status: 'success', mensagem: msg });
     } catch (e) {
         exibirStatus({ status: 'error', mensagem: 'Erro ao carregar rascunho: ' + e.message });
     }
@@ -850,21 +864,29 @@ function reaproveitarVenda(itensJSONEncoded) {
 function abrirModalFinalizarPendente(id, itensJSONEncoded) {
     try {
         const itensJSON = decodeURIComponent(itensJSONEncoded);
-        const itens = JSON.parse(itensJSON);
-        if (!itens || itens.length === 0) {
-            exibirStatus({ status: 'error', mensagem: 'ItensJSON vazio — não é possível finalizar este rascunho.' });
-            return;
-        }
-        carrinho = itens.map(i => ({
-            nome: i.nome, preco: parseFloat(i.preco) || 0,
-            quantidade: parseFloat(i.quantidade) || 0,
-            desconto: parseFloat(i.desconto) || 0,
-            subtotal: parseFloat(i.subtotal) || 0
-        }));
+        // Fallback seguro: rascunho pode não ter itens
+        let itens = [];
+        try { itens = JSON.parse(itensJSON) || []; } catch(e) { itens = []; }
+
+        carrinho = itens
+            .filter(i => i && i.nome)
+            .map(i => ({
+                nome: i.nome, preco: parseFloat(i.preco) || 0,
+                quantidade: parseFloat(i.quantidade) || 0,
+                desconto: parseFloat(i.desconto) || 0,
+                subtotal: parseFloat(i.subtotal) || 0
+            }));
+
         vendaEditandoId = id;
         renderizarCarrinho();
         abrirSlideoverVenda();
-        abrirModal();
+
+        if (carrinho.length === 0) {
+            // Rascunho sem itens: abre o slideover para o operador adicionar produtos antes de finalizar
+            exibirStatus({ status: 'success', mensagem: `✏️ Rascunho #${id} aberto. Adicione produtos para poder finalizar.` });
+        } else {
+            abrirModal();
+        }
     } catch (e) {
         exibirStatus({ status: 'error', mensagem: 'Erro ao carregar itens para finalização: ' + e.message });
     }
