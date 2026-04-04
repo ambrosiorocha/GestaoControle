@@ -269,6 +269,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div id="custom-modal-overlay">
             <div id="custom-modal-box">
                 <div id="custom-modal-title">Substitua esta mensagem...</div>
+                <input type="text" id="custom-modal-input" style="display:none; width:100%; padding:0.75rem; margin-bottom:1.5rem; border:1px solid rgba(255,255,255,0.2); border-radius:0.5rem; outline:none; font-size:1rem; background:rgba(255,255,255,0.05); color:white; transition:border 0.2s;" onfocus="this.style.borderColor='#2ecc71'" onblur="this.style.borderColor='rgba(255,255,255,0.2)'">
                 <div class="custom-modal-actions" id="custom-modal-actions-container">
                     <button class="custom-modal-btn custom-modal-btn-cancel" id="custom-modal-btn-cancel">Cancelar</button>
                     <button class="custom-modal-btn custom-modal-btn-confirm" id="custom-modal-btn-confirm">
@@ -390,15 +391,18 @@ document.addEventListener('DOMContentLoaded', function () {
 // ==========================================
 window.CustomModal = {
     _resolver: null,
+    _isPrompt: false,
 
-    _show: function (msg, isAlert, optConfirmText, optCancelText) {
+    _show: function (msg, isAlert, optConfirmText, optCancelText, isPrompt = false, placeholder = '') {
         return new Promise(resolve => {
             this._resolver = resolve;
+            this._isPrompt = isPrompt;
 
             document.getElementById('custom-modal-title').innerHTML = msg;
 
             const btnCancel = document.getElementById('custom-modal-btn-cancel');
             const btnConfirmTextEl = document.getElementById('custom-modal-confirm-text');
+            const inputEl = document.getElementById('custom-modal-input');
 
             btnConfirmTextEl.textContent = optConfirmText || 'OK';
 
@@ -409,12 +413,24 @@ window.CustomModal = {
                 btnCancel.textContent = optCancelText || 'Cancelar';
             }
 
+            if (isPrompt) {
+                inputEl.style.display = 'block';
+                inputEl.placeholder = placeholder;
+                inputEl.value = '';
+            } else {
+                inputEl.style.display = 'none';
+            }
+
             const overlay = document.getElementById('custom-modal-overlay');
             overlay.classList.add('show');
 
-            // Foca o botão automaticamente p/ enter funcionar
+            // Foca o botão ou input automaticamente
             setTimeout(() => {
-                document.getElementById('custom-modal-btn-confirm').focus();
+                if (isPrompt) {
+                    inputEl.focus();
+                } else {
+                    document.getElementById('custom-modal-btn-confirm').focus();
+                }
             }, 100);
         });
     },
@@ -425,6 +441,10 @@ window.CustomModal = {
 
     alert: function (msg, okText = 'OK') {
         return this._show(msg, true, okText);
+    },
+
+    prompt: function (msg, placeholder = '', confirmText = 'Confirmar', cancelText = 'Cancelar') {
+        return this._show(msg, false, confirmText, cancelText, true, placeholder);
     },
 
     _close: function (result) {
@@ -440,9 +460,22 @@ window.CustomModal = {
 document.addEventListener('DOMContentLoaded', () => {
     document.body.addEventListener('click', (e) => {
         if (e.target.closest('#custom-modal-btn-confirm')) {
-            window.CustomModal._close(true);
+            const inputEl = document.getElementById('custom-modal-input');
+            const result = window.CustomModal._isPrompt ? inputEl.value : true;
+            window.CustomModal._close(result);
         } else if (e.target.closest('#custom-modal-btn-cancel')) {
-            window.CustomModal._close(false);
+            window.CustomModal._close(window.CustomModal._isPrompt ? null : false);
+        }
+    });
+
+    // Submeter com ENTER no input do prompt
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && window.CustomModal._isPrompt) {
+            const overlay = document.getElementById('custom-modal-overlay');
+            if (overlay && overlay.classList.contains('show')) {
+                const inputEl = document.getElementById('custom-modal-input');
+                window.CustomModal._close(inputEl.value);
+            }
         }
     });
 });

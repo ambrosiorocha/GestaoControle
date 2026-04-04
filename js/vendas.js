@@ -857,9 +857,14 @@ function editarRascunho(id, itensJSONEncoded) {
 // REABERTURA JUSTIFICADA (Mantém o ID e exige conciliação)
 // ================================
 async function reabrirVendaJustificada(id, itensJSONEncoded) {
-    const justificativa = prompt(`⚠️ REABERTURA DE VENDA #${id}\n\nUma venda reaberta precisará ser finalizada novamente para gravar o novo registro financeiro.\n\nInforme a JUSTIFICATIVA (mín. 5 caracteres):`);
+    const justificativa = await CustomModal.prompt(
+        `⚠️ REABERTURA DE VENDA #${id}<br><br><span style="font-size:0.85rem; color:#94a3b8; font-weight:normal;">Uma venda reaberta precisará ser salva e finalizada novamente para gravar o novo registro financeiro de forma limpa.</span><br><br>📝 Informe a JUSTIFICATIVA (mín. 5 caracteres):`,
+        'Ex: Digitação errada no valor recebido',
+        'Reabrir',
+        'Cancelar'
+    );
     
-    if (justificativa === null) {
+    if (justificativa === null || justificativa === false) {
         return; // Usuário cancelou o prompt
     }
     
