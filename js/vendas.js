@@ -447,6 +447,8 @@ function abrirModal() {
     document.getElementById('prazoContainer').style.display = 'none';
     document.getElementById('prazoCustom').style.display = 'none';
     document.getElementById('vencimentoCustom').value = '';
+    document.getElementById('observacoesVenda').value = ''; // Reset de Observação
+    document.getElementById('descontoAdicionalFinal').value = '0,00'; // Reset de Desconto Final
 
     const caixaSelect = document.getElementById('caixaVenda');
     if (caixaSelect) {
@@ -520,10 +522,12 @@ function atualizarModalTotais() {
     const subtotalComItens = carrinho.reduce((s, i) => s + i.subtotal, 0);
     // Desconto dos itens individualmente
     const descontoItens = subtotalBruto - subtotalComItens;
-    // Desconto geral adicional no modal
-    const descontoGeral = parseFloat(document.getElementById('descontoGeralModal').value) || 0;
-    // Desconto total
-    const descontoTotal = descontoItens + descontoGeral;
+    // Desconto geral vindo do Slide-over PDV
+    const descontoGeralModal = parseFloat(String(document.getElementById('descontoGeralModal').value || '0').replace(/\./g, '').replace(',', '.')) || 0;
+    // Desconto adicional aplicado no Modal de Finalização
+    const descontoAdicionalFinal = parseFloat(String(document.getElementById('descontoAdicionalFinal').value || '0').replace(/\./g, '').replace(',', '.')) || 0;
+    // Desconto total consolidado
+    const descontoTotal = descontoItens + descontoGeralModal + descontoAdicionalFinal;
     const total = Math.max(0, subtotalBruto - descontoTotal);
 
     document.getElementById('modalSubtotal').textContent = formatCurrencyBRL(subtotalBruto);
@@ -544,8 +548,10 @@ function montarPayloadVenda(cartList = carrinho) {
     const subtotalItens = cartList.reduce((s, i) => s + i.subtotal, 0);
     const descontoItens = subtotalBruto - subtotalItens;
     const descontoGeralEl = document.getElementById('descontoGeralModal');
-    const descontoGeral = descontoGeralEl ? (parseFloat(descontoGeralEl.value) || 0) : 0;
-    const descontoTotal = descontoItens + descontoGeral;
+    const descontoGeral = descontoGeralEl ? (parseFloat(String(descontoGeralEl.value || '0').replace(/\./g, '').replace(',', '.')) || 0) : 0;
+    const descontoAdicionalEl = document.getElementById('descontoAdicionalFinal');
+    const descontoAdicional = descontoAdicionalEl ? (parseFloat(String(descontoAdicionalEl.value || '0').replace(/\./g, '').replace(',', '.')) || 0) : 0;
+    const descontoTotal = descontoItens + descontoGeral + descontoAdicional;
     const total = Math.max(0, subtotalBruto - descontoTotal);
     const qtdTotal = cartList.reduce((s, i) => s + i.quantidade, 0);
     const itensStr = cartList.map(i => {
